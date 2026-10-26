@@ -1,5 +1,6 @@
 package org.eu.suisei.xray;
 
+import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.graphics.drawable.Icon;
@@ -8,7 +9,7 @@ import android.service.quicksettings.TileService;
 
 /**
  * Quick Settings Tile to trigger Voice Recording via Samsung Voice Note Shortcut.
- * Tries native invocation first, falls back to root execution.
+ * Tries native PendingIntent invocation first, falls back to root execution.
  * Zero background persistence and strict battery conservation.
  */
 public class RecordTileService extends TileService {
@@ -23,7 +24,7 @@ public class RecordTileService extends TileService {
     public void onClick() {
         super.onClick();
 
-        // 1. Try native start
+        // 1. Try native start using official PendingIntent API for TileService
         boolean started = false;
         try {
             Intent intent = new Intent("voicenote.intent.action.START_RECORDING");
@@ -32,7 +33,14 @@ public class RecordTileService extends TileService {
                     "com.sec.android.app.voicenote.activity.ShortcutActivity"
             ));
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(intent);
+
+            PendingIntent pi = PendingIntent.getActivity(
+                    this,
+                    0,
+                    intent,
+                    PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
+            );
+            startActivityAndCollapse(pi);
             started = true;
         } catch (Throwable ignored) {
             started = false;

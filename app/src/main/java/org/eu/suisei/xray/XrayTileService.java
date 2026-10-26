@@ -1,6 +1,7 @@
 package org.eu.suisei.xray;
 
 import android.content.ComponentName;
+import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 import android.service.quicksettings.Tile;
@@ -16,20 +17,33 @@ public class XrayTileService extends TileService {
 
     private static final AtomicBoolean busy = new AtomicBoolean(false);
     private static final AtomicBoolean initialized = new AtomicBoolean(false);
+    private static final AtomicBoolean forceRefresh = new AtomicBoolean(false);
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
+
+    /**
+     * Requests an explicit tile sync without running a polling daemon.
+     * Preserves zero standby battery consumption.
+     */
+    public static void requestRefresh(Context context) {
+        forceRefresh.set(true);
+        try {
+            requestListeningState(context, new ComponentName(context, XrayTileService.class));
+        } catch (Exception ignored) {
+        }
+    }
 
     @Override
     public void onTileAdded() {
         super.onTileAdded();
         // Request listening lifecycle to perform initial state synchronization
-        requestListeningState(this, new ComponentName(this, XrayTileService.class));
+        requestRefresh(this);
     }
 
     @Override
     public void onStartListening() {
         super.onStartListening();
-        // Active Tile: Only perform root query upon explicit initial sync request
-        if (initialized.compareAndSet(false, true)) {
+        // Active Tile: Only perform root query upon explicit initial sync or forced refresh request
+        if (initialized.compareAndSet(false, true) || forceRefresh.compareAndSet(true, false)) {
             if (busy.compareAndSet(false, true)) {
                 new Thread(() -> {
                     try {
@@ -40,7 +54,7 @@ public class XrayTileService extends TileService {
                     } finally {
                         busy.set(false);
                     }
-                }, "Xray-InitQuery").start();
+                }, "Xray-SyncQuery").start();
             }
         }
     }

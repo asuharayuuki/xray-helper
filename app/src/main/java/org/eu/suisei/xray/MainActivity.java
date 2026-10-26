@@ -7,6 +7,7 @@ import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -42,6 +43,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -122,10 +124,15 @@ public class MainActivity extends AppCompatActivity {
         if (TileService.ACTION_QS_TILE_PREFERENCES.equals(intent.getAction())) {
             ComponentName component = null;
             try {
-                Object extra = intent.getParcelableExtra(Intent.EXTRA_COMPONENT_NAME);
-                if (extra instanceof ComponentName) {
-                    component = (ComponentName) extra;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    component = intent.getParcelableExtra(Intent.EXTRA_COMPONENT_NAME, ComponentName.class);
                 } else {
+                    Object extra = intent.getParcelableExtra(Intent.EXTRA_COMPONENT_NAME);
+                    if (extra instanceof ComponentName) {
+                        component = (ComponentName) extra;
+                    }
+                }
+                if (component == null) {
                     String extraStr = intent.getStringExtra(Intent.EXTRA_COMPONENT_NAME);
                     if (extraStr != null) {
                         component = ComponentName.unflattenFromString(extraStr);
@@ -250,14 +257,8 @@ public class MainActivity extends AppCompatActivity {
                 setBusy(false);
                 isExecuting.set(false);
 
-                // Request QS tile refresh to keep tile in sync
-                try {
-                    TileService.requestListeningState(
-                            MainActivity.this,
-                            new ComponentName(MainActivity.this, XrayTileService.class)
-                    );
-                } catch (Exception ignored) {
-                }
+                // Synchronize QS tile reliably without polling daemon
+                XrayTileService.requestRefresh(MainActivity.this);
             });
         }, "Xray-UI-Action").start();
     }
@@ -485,32 +486,57 @@ public class MainActivity extends AppCompatActivity {
         }
 
         new Thread(() -> {
+            Process process = null;
             try {
-                Process process = new ProcessBuilder("/system/bin/sh", "-c", command)
+                process = new ProcessBuilder("/system/bin/sh", "-c", command)
                         .redirectErrorStream(true)
                         .start();
 
                 StringBuilder sb = new StringBuilder();
+                final Process proc = process;
+
+                // Read output concurrently to prevent pipe buffer stalls
                 try (BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+                        new InputStreamReader(proc.getInputStream(), StandardCharsets.UTF_8))) {
                     String line;
                     while ((line = reader.readLine()) != null) {
                         if (sb.length() > 0) {
                             sb.append("\n");
                         }
                         sb.append(line);
+                        // Prevent excessive memory consumption
+                        if (sb.length() > 2000) {
+                            break;
+                        }
                     }
                 }
-                process.waitFor();
+
+                // 10s execution timeout
+                boolean finished = process.waitFor(10, TimeUnit.SECONDS);
+                if (!finished) {
+                    process.destroyForcibly();
+                }
 
                 String output = sb.toString().trim();
                 if (!output.isEmpty()) {
-                    mainHandler.post(() -> Toast.makeText(MainActivity.this, output, Toast.LENGTH_LONG).show());
+                    // Truncate to maximum 200 characters per user requirement
+                    if (output.length() > 200) {
+                        output = output.substring(0, 200);
+                    }
+                    final String displayOutput = output;
+                    mainHandler.post(() -> Toast.makeText(MainActivity.this, displayOutput, Toast.LENGTH_LONG).show());
                 }
             } catch (Exception e) {
+                if (process != null) {
+                    process.destroyForcibly();
+                }
                 String err = e.getMessage();
                 if (err != null && !err.trim().isEmpty()) {
-                    mainHandler.post(() -> Toast.makeText(MainActivity.this, err.trim(), Toast.LENGTH_LONG).show());
+                    if (err.length() > 200) {
+                        err = err.substring(0, 200);
+                    }
+                    final String displayErr = err.trim();
+                    mainHandler.post(() -> Toast.makeText(MainActivity.this, displayErr, Toast.LENGTH_LONG).show());
                 }
             }
         }, "CustomAction-Executor").start();

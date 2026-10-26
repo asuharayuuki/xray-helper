@@ -3,6 +3,8 @@ package org.eu.suisei.xray;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -277,11 +279,30 @@ public final class RootShell {
             pb.redirectErrorStream(true);
             process = pb.start();
 
+            List<String> lines = new ArrayList<>();
+            final Process proc = process;
+
+            // Concurrently drain process input stream to prevent pipe buffer deadlocks
+            Thread readerThread = new Thread(() -> {
+                try (BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(proc.getInputStream(), StandardCharsets.UTF_8))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        lines.add(line.trim());
+                    }
+                } catch (Exception ignored) {
+                }
+            }, "RootShell-Reader");
+            readerThread.start();
+
             boolean finished = process.waitFor(timeoutMs, TimeUnit.MILLISECONDS);
             if (!finished) {
                 process.destroyForcibly();
+                readerThread.interrupt();
                 return new Result(ActionResult.ERROR, State.ERROR);
             }
+
+            readerThread.join(1000);
 
             if (process.exitValue() != 0) {
                 return new Result(ActionResult.ERROR, State.ERROR);
@@ -290,29 +311,24 @@ public final class RootShell {
             ActionResult parsedResult = ActionResult.ERROR;
             State parsedState = State.ERROR;
 
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    line = line.trim();
-                    if (line.startsWith("RESULT=")) {
-                        String val = line.substring(7).trim();
-                        if ("OK".equalsIgnoreCase(val)) {
-                            parsedResult = ActionResult.OK;
-                        } else {
-                            parsedResult = ActionResult.ERROR;
-                        }
-                    } else if (line.startsWith("STATE=")) {
-                        String val = line.substring(6).trim();
-                        if ("ON".equalsIgnoreCase(val)) {
-                            parsedState = State.ON;
-                        } else if ("OFF".equalsIgnoreCase(val)) {
-                            parsedState = State.OFF;
-                        } else if ("EXITED".equalsIgnoreCase(val)) {
-                            parsedState = State.EXITED;
-                        } else {
-                            parsedState = State.ERROR;
-                        }
+            for (String line : lines) {
+                if (line.startsWith("RESULT=")) {
+                    String val = line.substring(7).trim();
+                    if ("OK".equalsIgnoreCase(val)) {
+                        parsedResult = ActionResult.OK;
+                    } else {
+                        parsedResult = ActionResult.ERROR;
+                    }
+                } else if (line.startsWith("STATE=")) {
+                    String val = line.substring(6).trim();
+                    if ("ON".equalsIgnoreCase(val)) {
+                        parsedState = State.ON;
+                    } else if ("OFF".equalsIgnoreCase(val)) {
+                        parsedState = State.OFF;
+                    } else if ("EXITED".equalsIgnoreCase(val)) {
+                        parsedState = State.EXITED;
+                    } else {
+                        parsedState = State.ERROR;
                     }
                 }
             }
@@ -328,62 +344,74 @@ public final class RootShell {
 
     private static DetailedStatus executeDetailed(String script, long timeoutMs) {
         Process process = null;
-        boolean isRootGranted = false;
-        String proxy = null;
-        String pid = null;
-        boolean isAdbEnabled = false;
-        State state = State.ERROR;
-
         try {
             ProcessBuilder pb = new ProcessBuilder("su", "-c", script);
             pb.redirectErrorStream(true);
             process = pb.start();
 
+            List<String> lines = new ArrayList<>();
+            final Process proc = process;
+
+            // Concurrently drain process input stream to prevent pipe buffer deadlocks
+            Thread readerThread = new Thread(() -> {
+                try (BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(proc.getInputStream(), StandardCharsets.UTF_8))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        lines.add(line.trim());
+                    }
+                } catch (Exception ignored) {
+                }
+            }, "RootShell-DetailedReader");
+            readerThread.start();
+
             boolean finished = process.waitFor(timeoutMs, TimeUnit.MILLISECONDS);
             if (!finished) {
                 process.destroyForcibly();
+                readerThread.interrupt();
                 return new DetailedStatus(State.ERROR, "Unknown", null, false, false);
             }
+
+            readerThread.join(1000);
 
             if (process.exitValue() != 0) {
                 return new DetailedStatus(State.ERROR, "Unknown", null, false, false);
             }
 
-            isRootGranted = true;
+            boolean isRootGranted = true;
+            String proxy = null;
+            String pid = null;
+            boolean isAdbEnabled = false;
+            State state = State.ERROR;
 
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    line = line.trim();
-                    if (line.startsWith("PROXY=")) {
-                        proxy = line.substring(6).trim();
-                    } else if (line.startsWith("PID=")) {
-                        pid = line.substring(4).trim();
-                        if (pid.isEmpty()) {
-                            pid = null;
-                        }
-                    } else if (line.startsWith("ADB_USB=")) {
-                        String val = line.substring(8).trim();
-                        if ("1".equals(val)) {
-                            isAdbEnabled = true;
-                        }
-                    } else if (line.startsWith("ADB_WIFI=")) {
-                        String val = line.substring(9).trim();
-                        if ("1".equals(val)) {
-                            isAdbEnabled = true;
-                        }
-                    } else if (line.startsWith("STATE=")) {
-                        String val = line.substring(6).trim();
-                        if ("ON".equalsIgnoreCase(val)) {
-                            state = State.ON;
-                        } else if ("OFF".equalsIgnoreCase(val)) {
-                            state = State.OFF;
-                        } else if ("EXITED".equalsIgnoreCase(val)) {
-                            state = State.EXITED;
-                        } else {
-                            state = State.ERROR;
-                        }
+            for (String line : lines) {
+                if (line.startsWith("PROXY=")) {
+                    proxy = line.substring(6).trim();
+                } else if (line.startsWith("PID=")) {
+                    pid = line.substring(4).trim();
+                    if (pid.isEmpty()) {
+                        pid = null;
+                    }
+                } else if (line.startsWith("ADB_USB=")) {
+                    String val = line.substring(8).trim();
+                    if ("1".equals(val)) {
+                        isAdbEnabled = true;
+                    }
+                } else if (line.startsWith("ADB_WIFI=")) {
+                    String val = line.substring(9).trim();
+                    if ("1".equals(val)) {
+                        isAdbEnabled = true;
+                    }
+                } else if (line.startsWith("STATE=")) {
+                    String val = line.substring(6).trim();
+                    if ("ON".equalsIgnoreCase(val)) {
+                        state = State.ON;
+                    } else if ("OFF".equalsIgnoreCase(val)) {
+                        state = State.OFF;
+                    } else if ("EXITED".equalsIgnoreCase(val)) {
+                        state = State.EXITED;
+                    } else {
+                        state = State.ERROR;
                     }
                 }
             }

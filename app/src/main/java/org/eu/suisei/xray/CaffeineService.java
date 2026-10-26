@@ -67,7 +67,8 @@ public class CaffeineService extends Service {
             wakeLock.setReferenceCounted(false);
         }
 
-        // Conserve battery: auto release WakeLock immediately when screen turns off
+        // Conserve battery: auto release WakeLock immediately when screen turns off.
+        // Explicitly specify RECEIVER_NOT_EXPORTED for Android 14+ (API 34/37) safety.
         screenOffReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
@@ -76,7 +77,7 @@ public class CaffeineService extends Service {
                 }
             }
         };
-        registerReceiver(screenOffReceiver, new IntentFilter(Intent.ACTION_SCREEN_OFF));
+        registerReceiver(screenOffReceiver, new IntentFilter(Intent.ACTION_SCREEN_OFF), Context.RECEIVER_NOT_EXPORTED);
     }
 
     @Override
