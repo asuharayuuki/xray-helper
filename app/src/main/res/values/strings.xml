@@ -1,0 +1,41 @@
+<resources>
+    <string name="app_name">Xray</string>
+    <string name="tile_label_normal">Xray</string>
+    <string name="tile_label_exited">Xray Exited</string>
+    <string name="state_on">On</string>
+    <string name="state_off">Off</string>
+    <string name="state_exited">Exited</string>
+    <string name="state_error">Error</string>
+    <string name="state_root_denied">Root Denied / Unavailable</string>
+
+    <string name="title_status">Current Status</string>
+    <string name="title_details">System &amp; Process Details</string>
+    <string name="title_controls">Controls</string>
+
+    <string name="btn_start">Start</string>
+    <string name="btn_stop">Stop</string>
+    <string name="btn_restart">Restart</string>
+    <string name="btn_refresh">Refresh</string>
+    <string name="btn_disable_adb">Disable Debugging</string>
+
+    <string name="label_proxy">HTTP Proxy</string>
+    <string name="label_pid">Process PID</string>
+
+    <string name="status_not_running">Not Running (—)</string>
+    <string name="status_active">127.0.0.1:2080 (Enabled)</string>
+    <string name="status_disabled">:0 (Disabled)</string>
+    <string name="status_custom">%1$s</string>
+
+    <string name="desc_on">Xray process is active and global HTTP proxy is configured.</string>
+    <string name="desc_off">HTTP proxy is disabled.</string>
+    <string name="desc_exited">HTTP proxy is set to 127.0.0.1:2080, but Xray is stopped.</string>
+    <string name="desc_error">Operation failed or root access was denied.</string>
+
+    <!-- Caffeine Strings -->
+    <string name="caffeine_tile_label">Caffeine</string>
+    <string name="caffeine_off">Off</string>
+    <string name="caffeine_infinite">Infinite</string>
+
+    <!-- Record Strings -->
+    <string name="record_tile_label">Record</string>
+</resources>
