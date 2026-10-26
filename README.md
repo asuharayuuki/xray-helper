@@ -13,6 +13,8 @@ A lightweight Android Quick Settings utility app designed for rooted Android 17 
   - Auto-adapts status bar and insets (Edge-to-Edge) to light/dark system themes.
   - Controls: Start, Stop, Restart Xray.
   - Disable Debugging: Instantly turns off USB and Wireless debugging via root commands.
+  - Custom Buttons: Create, edit, and execute custom shell commands (e.g. `su -c 'uname -a'`), displaying raw outputs via Toast.
+  - Displays in recent tasks normally and can be swiped away.
   - Does not open when long-pressing Caffeine or Record tiles.
 - **Caffeine QS Tile**:
   - Independent Quick Settings tile to prevent the screen from sleeping.
@@ -23,7 +25,6 @@ A lightweight Android Quick Settings utility app designed for rooted Android 17 
   - Calls native Android shortcut with automatic fallback to root execution.
 - **Zero Overhead**:
   - No desktop launcher icon.
-  - Excluded from recents.
   - Zero background power draw when idle.
 
 ## Building

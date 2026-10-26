@@ -38,4 +38,18 @@
 
     <!-- Record Strings -->
     <string name="record_tile_label">Record</string>
+
+    <!-- Custom Actions Strings -->
+    <string name="title_custom_actions">Custom Actions</string>
+    <string name="btn_add_action">Add</string>
+    <string name="empty_custom_actions">No custom buttons yet. Tap Add to create one.</string>
+    <string name="dialog_title_add">Add Custom Button</string>
+    <string name="dialog_title_edit">Edit Custom Button</string>
+    <string name="hint_button_name">Button Name</string>
+    <string name="hint_button_command">Command (e.g. su -c \'uname -a\')</string>
+    <string name="error_name_empty">Name cannot be empty</string>
+    <string name="error_command_empty">Command cannot be empty</string>
+    <string name="btn_save">Save</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="btn_delete">Delete</string>
 </resources>

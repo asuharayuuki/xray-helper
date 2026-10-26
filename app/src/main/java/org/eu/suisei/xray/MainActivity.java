@@ -1,7 +1,9 @@
 package org.eu.suisei.xray;
 
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
@@ -9,10 +11,14 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.service.quicksettings.TileService;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -22,8 +28,20 @@ import androidx.core.view.WindowInsetsControllerCompat;
 
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.progressindicator.LinearProgressIndicator;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -31,6 +49,21 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Zero background persistence and ultra-low battery consumption.
  */
 public class MainActivity extends AppCompatActivity {
+
+    private static final String PREFS_NAME = "xray_custom_actions";
+    private static final String KEY_CUSTOM_ACTIONS = "custom_actions_json";
+
+    public static class CustomAction {
+        public String id;
+        public String name;
+        public String command;
+
+        public CustomAction(String id, String name, String command) {
+            this.id = id;
+            this.name = name;
+            this.command = command;
+        }
+    }
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final AtomicBoolean isExecuting = new AtomicBoolean(false);
@@ -44,6 +77,10 @@ public class MainActivity extends AppCompatActivity {
     private MaterialButton btnStop;
     private MaterialButton btnRestart;
     private MaterialButton btnDisableAdb;
+
+    private MaterialButton btnAddCustomAction;
+    private TextView textEmptyCustomActions;
+    private LinearLayout containerCustomActions;
 
     private boolean currentAdbEnabled = false;
 
@@ -63,6 +100,7 @@ public class MainActivity extends AppCompatActivity {
         initViews();
         setupToolbar();
         setupActions();
+        renderCustomActions();
     }
 
     @Override
@@ -146,6 +184,10 @@ public class MainActivity extends AppCompatActivity {
         btnStop = findViewById(R.id.btn_stop);
         btnRestart = findViewById(R.id.btn_restart);
         btnDisableAdb = findViewById(R.id.btn_disable_adb);
+
+        btnAddCustomAction = findViewById(R.id.btn_add_custom_action);
+        textEmptyCustomActions = findViewById(R.id.text_empty_custom_actions);
+        containerCustomActions = findViewById(R.id.container_custom_actions);
     }
 
     private void setupToolbar() {
@@ -165,6 +207,8 @@ public class MainActivity extends AppCompatActivity {
         btnStop.setOnClickListener(v -> executeAction(RootShell::stopService));
         btnRestart.setOnClickListener(v -> executeAction(RootShell::restartService));
         btnDisableAdb.setOnClickListener(v -> executeAction(RootShell::disableDebugging));
+
+        btnAddCustomAction.setOnClickListener(v -> showCustomActionDialog(null));
     }
 
     private void loadStatus() {
@@ -293,5 +337,182 @@ public class MainActivity extends AppCompatActivity {
             drawable.setColor(color);
             textBadgeState.setBackground(drawable);
         }
+    }
+
+    // ==========================================
+    // Custom Buttons Management & Execution
+    // ==========================================
+
+    private List<CustomAction> loadCustomActions() {
+        List<CustomAction> list = new ArrayList<>();
+        SharedPreferences sp = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        String json = sp.getString(KEY_CUSTOM_ACTIONS, null);
+        if (json != null && !json.trim().isEmpty()) {
+            try {
+                JSONArray arr = new JSONArray(json);
+                for (int i = 0; i < arr.length(); i++) {
+                    JSONObject obj = arr.getJSONObject(i);
+                    list.add(new CustomAction(
+                            obj.getString("id"),
+                            obj.getString("name"),
+                            obj.getString("command")
+                    ));
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        return list;
+    }
+
+    private void saveCustomActions(List<CustomAction> list) {
+        try {
+            JSONArray arr = new JSONArray();
+            for (CustomAction action : list) {
+                JSONObject obj = new JSONObject();
+                obj.put("id", action.id);
+                obj.put("name", action.name);
+                obj.put("command", action.command);
+                arr.put(obj);
+            }
+            SharedPreferences sp = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+            sp.edit().putString(KEY_CUSTOM_ACTIONS, arr.toString()).apply();
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void renderCustomActions() {
+        containerCustomActions.removeAllViews();
+        List<CustomAction> actions = loadCustomActions();
+
+        if (actions.isEmpty()) {
+            textEmptyCustomActions.setVisibility(View.VISIBLE);
+        } else {
+            textEmptyCustomActions.setVisibility(View.GONE);
+            LayoutInflater inflater = LayoutInflater.from(this);
+            for (CustomAction action : actions) {
+                View itemView = inflater.inflate(R.layout.item_custom_action, containerCustomActions, false);
+                MaterialButton btnAction = itemView.findViewById(R.id.btn_custom_action);
+                MaterialButton btnEdit = itemView.findViewById(R.id.btn_edit_custom_action);
+
+                btnAction.setText(action.name);
+                btnAction.setOnClickListener(v -> executeCustomCommand(action.command));
+                btnAction.setOnLongClickListener(v -> {
+                    showCustomActionDialog(action);
+                    return true;
+                });
+
+                btnEdit.setOnClickListener(v -> showCustomActionDialog(action));
+
+                containerCustomActions.addView(itemView);
+            }
+        }
+    }
+
+    private void showCustomActionDialog(@Nullable CustomAction existingAction) {
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_custom_action, null);
+        TextInputLayout layoutName = dialogView.findViewById(R.id.layout_action_name);
+        TextInputLayout layoutCommand = dialogView.findViewById(R.id.layout_action_command);
+        TextInputEditText editName = dialogView.findViewById(R.id.edit_action_name);
+        TextInputEditText editCommand = dialogView.findViewById(R.id.edit_action_command);
+
+        boolean isEditing = (existingAction != null);
+        if (isEditing) {
+            editName.setText(existingAction.name);
+            editCommand.setText(existingAction.command);
+        }
+
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this)
+                .setTitle(isEditing ? R.string.dialog_title_edit : R.string.dialog_title_add)
+                .setView(dialogView)
+                .setPositiveButton(R.string.btn_save, null)
+                .setNegativeButton(R.string.btn_cancel, (d, w) -> d.dismiss());
+
+        if (isEditing) {
+            builder.setNeutralButton(R.string.btn_delete, (d, w) -> {
+                List<CustomAction> actions = loadCustomActions();
+                actions.removeIf(a -> a.id.equals(existingAction.id));
+                saveCustomActions(actions);
+                renderCustomActions();
+            });
+        }
+
+        androidx.appcompat.app.AlertDialog dialog = builder.create();
+        dialog.show();
+
+        // Override positive button to prevent auto-dismiss if validation fails
+        dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            String name = editName.getText() != null ? editName.getText().toString().trim() : "";
+            String command = editCommand.getText() != null ? editCommand.getText().toString().trim() : "";
+
+            boolean valid = true;
+            if (name.isEmpty()) {
+                layoutName.setError(getString(R.string.error_name_empty));
+                valid = false;
+            } else {
+                layoutName.setError(null);
+            }
+
+            if (command.isEmpty()) {
+                layoutCommand.setError(getString(R.string.error_command_empty));
+                valid = false;
+            } else {
+                layoutCommand.setError(null);
+            }
+
+            if (valid) {
+                List<CustomAction> actions = loadCustomActions();
+                if (isEditing) {
+                    for (CustomAction a : actions) {
+                        if (a.id.equals(existingAction.id)) {
+                            a.name = name;
+                            a.command = command;
+                            break;
+                        }
+                    }
+                } else {
+                    actions.add(new CustomAction(UUID.randomUUID().toString(), name, command));
+                }
+                saveCustomActions(actions);
+                renderCustomActions();
+                dialog.dismiss();
+            }
+        });
+    }
+
+    private void executeCustomCommand(String command) {
+        if (command == null || command.trim().isEmpty()) {
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                Process process = new ProcessBuilder("/system/bin/sh", "-c", command)
+                        .redirectErrorStream(true)
+                        .start();
+
+                StringBuilder sb = new StringBuilder();
+                try (BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        if (sb.length() > 0) {
+                            sb.append("\n");
+                        }
+                        sb.append(line);
+                    }
+                }
+                process.waitFor();
+
+                String output = sb.toString().trim();
+                if (!output.isEmpty()) {
+                    mainHandler.post(() -> Toast.makeText(MainActivity.this, output, Toast.LENGTH_LONG).show());
+                }
+            } catch (Exception e) {
+                String err = e.getMessage();
+                if (err != null && !err.trim().isEmpty()) {
+                    mainHandler.post(() -> Toast.makeText(MainActivity.this, err.trim(), Toast.LENGTH_LONG).show());
+                }
+            }
+        }, "CustomAction-Executor").start();
     }
 }
