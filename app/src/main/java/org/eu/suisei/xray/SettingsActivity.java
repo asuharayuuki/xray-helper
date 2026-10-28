@@ -6,7 +6,6 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -21,21 +20,13 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 
 import com.google.android.material.appbar.MaterialToolbar;
-import com.google.android.material.button.MaterialButton;
 import com.google.android.material.color.DynamicColors;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.divider.MaterialDivider;
-import com.google.android.material.textfield.TextInputEditText;
 
 import java.util.List;
 
 public class SettingsActivity extends AppCompatActivity {
-
-    private TextInputEditText editStartCmd;
-    private TextInputEditText editStopCmd;
-    private TextInputEditText editHttpProxy;
-    private TextInputEditText editProcessName;
-    private MaterialButton btnSaveCommands;
 
     private LinearLayout containerDashboardItemsList;
     private View rowResetDefaults;
@@ -50,7 +41,6 @@ public class SettingsActivity extends AppCompatActivity {
         setupWindowInsets();
         setupToolbar();
         initViews();
-        loadCommandConfig();
     }
 
     @Override
@@ -88,43 +78,8 @@ public class SettingsActivity extends AppCompatActivity {
 
     private void initViews() {
         containerDashboardItemsList = findViewById(R.id.container_dashboard_items_list);
-
-        editStartCmd = findViewById(R.id.edit_start_cmd);
-        editStopCmd = findViewById(R.id.edit_stop_cmd);
-        editHttpProxy = findViewById(R.id.edit_http_proxy);
-        editProcessName = findViewById(R.id.edit_process_name);
-        btnSaveCommands = findViewById(R.id.btn_save_commands);
-
         rowResetDefaults = findViewById(R.id.row_reset_defaults);
-
-        btnSaveCommands.setOnClickListener(v -> saveCommandConfig());
         rowResetDefaults.setOnClickListener(v -> resetAllToDefaults());
-    }
-
-    private void loadCommandConfig() {
-        editStartCmd.setText(AppConfig.getStartCommand(this));
-        editStopCmd.setText(AppConfig.getStopCommand(this));
-        editHttpProxy.setText(AppConfig.getHttpProxy(this));
-        editProcessName.setText(AppConfig.getProcessName(this));
-    }
-
-    private void saveCommandConfig() {
-        String startCmd = editStartCmd.getText() != null ? editStartCmd.getText().toString().trim() : "";
-        String stopCmd = editStopCmd.getText() != null ? editStopCmd.getText().toString().trim() : "";
-        String proxy = editHttpProxy.getText() != null ? editHttpProxy.getText().toString().trim() : "";
-        String procName = editProcessName.getText() != null ? editProcessName.getText().toString().trim() : "";
-
-        if (startCmd.isEmpty() || stopCmd.isEmpty() || proxy.isEmpty() || procName.isEmpty()) {
-            Toast.makeText(this, "Commands cannot be empty", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        AppConfig.setStartCommand(this, startCmd);
-        AppConfig.setStopCommand(this, stopCmd);
-        AppConfig.setHttpProxy(this, proxy);
-        AppConfig.setProcessName(this, procName);
-
-        Toast.makeText(this, R.string.msg_commands_saved, Toast.LENGTH_SHORT).show();
     }
 
     private void renderDashboardItems() {
@@ -193,7 +148,6 @@ public class SettingsActivity extends AppCompatActivity {
                 .setMessage("Reset all Xray commands and dashboard layout to defaults?")
                 .setPositiveButton("Reset", (d, w) -> {
                     AppConfig.resetDefaults(this);
-                    loadCommandConfig();
                     List<DashboardSection> defaults = DashboardConfigManager.createDefaults();
                     DashboardConfigManager.save(this, defaults);
                     renderDashboardItems();

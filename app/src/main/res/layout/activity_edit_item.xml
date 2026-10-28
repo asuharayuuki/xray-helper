@@ -116,55 +116,129 @@
 
                     </com.google.android.material.textfield.TextInputLayout>
 
-                    <!-- Type Selector -->
+                    <!-- Type Selector (Hidden for Core) -->
+                    <LinearLayout
+                        android:id="@+id/layout_control_type_wrapper"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Control type"
+                            android:textSize="14sp"
+                            android:textColor="?attr/colorOnSurfaceVariant" />
+
+                        <RadioGroup
+                            android:id="@+id/group_item_type"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:orientation="horizontal">
+
+                            <com.google.android.material.radiobutton.MaterialRadioButton
+                                android:id="@+id/radio_button"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Action button" />
+
+                            <com.google.android.material.radiobutton.MaterialRadioButton
+                                android:id="@+id/radio_switch"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="24dp"
+                                android:text="Toggle switch" />
+
+                        </RadioGroup>
+
+                    </LinearLayout>
+
+                    <!-- Icon Picker -->
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="16dp"
-                        android:text="Control type"
+                        android:text="Icon"
                         android:textSize="14sp"
                         android:textColor="?attr/colorOnSurfaceVariant" />
 
-                    <RadioGroup
-                        android:id="@+id/group_item_type"
+                    <!-- Selected Icon Row -->
+                    <LinearLayout
+                        android:id="@+id/row_select_icon"
+                        android:layout_width="match_parent"
+                        android:layout_height="64dp"
+                        android:layout_marginTop="8dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:background="@drawable/bg_picker_row"
+                        android:clickable="true"
+                        android:focusable="true">
+
+                        <FrameLayout
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:background="@drawable/bg_icon_avatar">
+
+                            <ImageView
+                                android:id="@+id/img_selected_icon"
+                                android:layout_width="22dp"
+                                android:layout_height="22dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/ic_shield"
+                                app:tint="?attr/colorOnSecondaryContainer" />
+
+                        </FrameLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="14dp"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/text_selected_icon_name"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Shield"
+                                android:textSize="16sp"
+                                android:textColor="?attr/colorOnSurface" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Tap to choose from all icons"
+                                android:textSize="12sp"
+                                android:textColor="?attr/colorOnSurfaceVariant" />
+
+                        </LinearLayout>
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@drawable/ic_chevron_right"
+                            app:tint="?attr/colorOutline" />
+
+                    </LinearLayout>
+
+                    <!-- Horizontal Quick Picker -->
+                    <HorizontalScrollView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:orientation="horizontal">
+                        android:layout_marginTop="12dp"
+                        android:scrollbars="none">
 
-                        <com.google.android.material.radiobutton.MaterialRadioButton
-                            android:id="@+id/radio_button"
+                        <LinearLayout
+                            android:id="@+id/container_quick_icons"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Action button" />
+                            android:orientation="horizontal" />
 
-                        <com.google.android.material.radiobutton.MaterialRadioButton
-                            android:id="@+id/radio_switch"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="24dp"
-                            android:text="Toggle switch" />
-
-                    </RadioGroup>
-
-                    <!-- Icon Name -->
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/layout_item_icon"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="14dp"
-                        android:hint="Icon name"
-                        app:helperText="shield, bug, terminal, wifi, key, bolt, lock, cafe, power, none"
-                        app:helperTextEnabled="true"
-                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
-
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/edit_item_icon"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:singleLine="true" />
-
-                    </com.google.android.material.textfield.TextInputLayout>
+                    </HorizontalScrollView>
 
                 </LinearLayout>
 
@@ -197,7 +271,7 @@
                     android:orientation="vertical"
                     android:padding="20dp">
 
-                    <!-- On / Trigger Command -->
+                    <!-- On / Start Command -->
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/layout_on_cmd"
                         android:layout_width="match_parent"
@@ -214,7 +288,7 @@
 
                     </com.google.android.material.textfield.TextInputLayout>
 
-                    <!-- Off Command (Only visible for switch) -->
+                    <!-- Off / Stop Command -->
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/layout_off_cmd"
                         android:layout_width="match_parent"
@@ -233,7 +307,26 @@
 
                     </com.google.android.material.textfield.TextInputLayout>
 
-                    <!-- State Check Command (Only visible for switch) -->
+                    <!-- Process Name (Only for Core) -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/layout_process_name"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:hint="Process name (e.g. xray)"
+                        android:visibility="gone"
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/edit_process_name"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:typeface="monospace"
+                            android:inputType="text" />
+
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- State Check Command (Only visible for non-core switch) -->
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/layout_state_check_cmd"
                         android:layout_width="match_parent"
@@ -252,7 +345,7 @@
 
                     </com.google.android.material.textfield.TextInputLayout>
 
-                    <!-- Dynamic Summary Command -->
+                    <!-- Dynamic Summary Command (Only for non-core) -->
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/layout_summary_cmd"
                         android:layout_width="match_parent"
@@ -272,7 +365,7 @@
 
                     </com.google.android.material.textfield.TextInputLayout>
 
-                    <!-- Disable Condition Command -->
+                    <!-- Disable Condition Command (Only for non-core) -->
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/layout_disable_condition_cmd"
                         android:layout_width="match_parent"

@@ -76,8 +76,8 @@ public final class DashboardConfigManager {
                 "Core",
                 DashboardItem.TYPE_SWITCH,
                 "shield",
-                "", // Default start
-                "", // Default stop
+                AppConfig.DEFAULT_START_CMD,
+                AppConfig.DEFAULT_STOP_CMD,
                 "", // Default check
                 "", // Default 4-state summary
                 "",
