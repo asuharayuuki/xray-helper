@@ -9,10 +9,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -20,7 +19,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -455,46 +453,74 @@ fun EditItemScreen(
             onDismissRequest = { showIconPicker = false },
             title = "Select icon"
         ) {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(4),
+            val iconRows = remember { IconHelper.AVAILABLE_ICONS.toList().chunked(4) }
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 360.dp)
-                    .padding(vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    .heightIn(max = 340.dp)
+                    .verticalScroll(rememberScrollState())
+                    .padding(vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(IconHelper.AVAILABLE_ICONS) { iconName ->
-                    val isSelected = iconName.equals(selectedIcon, ignoreCase = true)
-                    val bg = if (isSelected) MiuixTheme.colorScheme.primaryContainer else MiuixTheme.colorScheme.surfaceContainer
-
-                    Column(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(bg)
-                            .clickable {
-                                selectedIcon = iconName
-                                showIconPicker = false
-                            }
-                            .padding(8.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                iconRows.forEach { rowIcons ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(
-                            painter = painterResource(IconHelper.getDrawableRes(iconName)),
-                            contentDescription = iconName,
-                            modifier = Modifier.size(28.dp),
-                            tint = if (isSelected) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.onSurface
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = formatIconName(iconName),
-                            fontSize = 11.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            textAlign = TextAlign.Center
-                        )
+                        rowIcons.forEach { iconName ->
+                            val isSelected = iconName.equals(selectedIcon, ignoreCase = true)
+                            val bg = if (isSelected) MiuixTheme.colorScheme.primaryContainer else MiuixTheme.colorScheme.surfaceContainer
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(bg)
+                                    .clickable {
+                                        selectedIcon = iconName
+                                        showIconPicker = false
+                                    }
+                                    .padding(vertical = 8.dp, horizontal = 4.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Icon(
+                                        painter = painterResource(IconHelper.getDrawableRes(iconName)),
+                                        contentDescription = iconName,
+                                        modifier = Modifier.size(26.dp),
+                                        tint = if (isSelected) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.onSurface
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = formatIconName(iconName),
+                                        fontSize = 11.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
+                        }
+                        repeat(4 - rowIcons.size) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
                     }
                 }
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(
+                    text = stringResource(R.string.btn_cancel),
+                    onClick = { showIconPicker = false }
+                )
             }
         }
     }
