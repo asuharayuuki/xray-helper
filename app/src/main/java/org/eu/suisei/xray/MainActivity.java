@@ -26,6 +26,7 @@ import androidx.core.view.WindowInsetsControllerCompat;
 
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.progressindicator.LinearProgressIndicator;
 
 import java.io.BufferedReader;
@@ -46,18 +47,12 @@ public class MainActivity extends AppCompatActivity {
 
     private LinearProgressIndicator progressBar;
     private TextView textBadgeState;
-    private TextView textStateDesc;
+    private MaterialCardView cardPid;
     private TextView textPid;
-    private TextView textProxy;
     private MaterialButton btnStart;
     private MaterialButton btnStop;
     private MaterialButton btnRestart;
-    private MaterialButton btnDisableAdb;
-
-    private TextView textEmptyCustomActions;
     private LinearLayout containerCustomActions;
-
-    private boolean currentAdbEnabled = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -156,15 +151,12 @@ public class MainActivity extends AppCompatActivity {
     private void initViews() {
         progressBar = findViewById(R.id.progress_bar);
         textBadgeState = findViewById(R.id.text_badge_state);
-        textStateDesc = findViewById(R.id.text_state_desc);
+        cardPid = findViewById(R.id.card_pid);
         textPid = findViewById(R.id.text_pid);
-        textProxy = findViewById(R.id.text_proxy);
         btnStart = findViewById(R.id.btn_start);
         btnStop = findViewById(R.id.btn_stop);
         btnRestart = findViewById(R.id.btn_restart);
-        btnDisableAdb = findViewById(R.id.btn_disable_adb);
 
-        textEmptyCustomActions = findViewById(R.id.text_empty_custom_actions);
         containerCustomActions = findViewById(R.id.container_custom_actions);
     }
 
@@ -188,7 +180,6 @@ public class MainActivity extends AppCompatActivity {
         btnStart.setOnClickListener(v -> executeAction(() -> RootShell.startService(MainActivity.this)));
         btnStop.setOnClickListener(v -> executeAction(() -> RootShell.stopService(MainActivity.this)));
         btnRestart.setOnClickListener(v -> executeAction(() -> RootShell.restartService(MainActivity.this)));
-        btnDisableAdb.setOnClickListener(v -> executeAction(() -> RootShell.disableDebugging(MainActivity.this)));
     }
 
     private void loadStatus() {
@@ -241,63 +232,37 @@ public class MainActivity extends AppCompatActivity {
         btnStart.setEnabled(!busy);
         btnStop.setEnabled(!busy);
         btnRestart.setEnabled(!busy);
-        btnDisableAdb.setEnabled(!busy && currentAdbEnabled);
     }
 
     private void bindStatus(RootShell.DetailedStatus status) {
-        currentAdbEnabled = status.isAdbEnabled;
-        btnDisableAdb.setEnabled(currentAdbEnabled);
-
         if (!status.isRootGranted) {
-            setBadge(getString(R.string.state_root_denied), Color.parseColor("#B00020"));
-            textStateDesc.setText(R.string.desc_error);
+            setBadge(getString(R.string.state_root_denied).toUpperCase(), Color.parseColor("#B00020"));
+            cardPid.setVisibility(View.GONE);
         } else {
             switch (status.state) {
                 case ON:
-                    setBadge(getString(R.string.state_on), Color.parseColor("#2E7D32"));
-                    textStateDesc.setText(R.string.desc_on);
+                    setBadge(getString(R.string.state_on).toUpperCase(), Color.parseColor("#2E7D32"));
+                    if (status.pid != null && !status.pid.isEmpty()) {
+                        textPid.setText("PID: " + status.pid);
+                        cardPid.setVisibility(View.VISIBLE);
+                    } else {
+                        cardPid.setVisibility(View.GONE);
+                    }
                     break;
                 case EXITED:
-                    setBadge(getString(R.string.state_exited), Color.parseColor("#E65100"));
-                    textStateDesc.setText(R.string.desc_exited);
+                    setBadge(getString(R.string.state_exited).toUpperCase(), Color.parseColor("#E65100"));
+                    cardPid.setVisibility(View.GONE);
                     break;
                 case OFF:
-                    setBadge(getString(R.string.state_off), Color.parseColor("#616161"));
-                    textStateDesc.setText(R.string.desc_off);
+                    setBadge(getString(R.string.state_off).toUpperCase(), Color.parseColor("#616161"));
+                    cardPid.setVisibility(View.GONE);
                     break;
                 case ERROR:
                 default:
-                    setBadge(getString(R.string.state_error), Color.parseColor("#C62828"));
-                    textStateDesc.setText(R.string.desc_error);
+                    setBadge(getString(R.string.state_error).toUpperCase(), Color.parseColor("#C62828"));
+                    cardPid.setVisibility(View.GONE);
                     break;
             }
-        }
-
-        // PID
-        if (status.pid != null && !status.pid.isEmpty()) {
-            textPid.setText(status.pid);
-            textPid.setTextColor(Color.parseColor("#2E7D32"));
-        } else {
-            textPid.setText(R.string.status_not_running);
-            textPid.setTextColor(Color.parseColor("#757575"));
-        }
-
-        // Proxy
-        String configuredProxy = AppConfig.getHttpProxy(this);
-        if (status.httpProxy != null && !status.httpProxy.isEmpty()) {
-            if (configuredProxy.equals(status.httpProxy)) {
-                textProxy.setText(R.string.status_active);
-                textProxy.setTextColor(Color.parseColor("#2E7D32"));
-            } else if (":0".equals(status.httpProxy) || "null".equalsIgnoreCase(status.httpProxy)) {
-                textProxy.setText(R.string.status_disabled);
-                textProxy.setTextColor(Color.parseColor("#757575"));
-            } else {
-                textProxy.setText(status.httpProxy);
-                textProxy.setTextColor(Color.parseColor("#E65100"));
-            }
-        } else {
-            textProxy.setText(R.string.status_disabled);
-            textProxy.setTextColor(Color.parseColor("#757575"));
         }
     }
 
@@ -322,10 +287,7 @@ public class MainActivity extends AppCompatActivity {
         containerCustomActions.removeAllViews();
         List<CustomAction> actions = CustomActionManager.load(this);
 
-        if (actions.isEmpty()) {
-            textEmptyCustomActions.setVisibility(View.VISIBLE);
-        } else {
-            textEmptyCustomActions.setVisibility(View.GONE);
+        if (!actions.isEmpty()) {
             LayoutInflater inflater = LayoutInflater.from(this);
             for (CustomAction action : actions) {
                 MaterialButton btnAction = (MaterialButton) inflater.inflate(R.layout.item_custom_action, containerCustomActions, false);

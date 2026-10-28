@@ -8,17 +8,32 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public final class CustomActionManager {
 
     private static final String PREFS_NAME = "xray_custom_actions";
     private static final String KEY_CUSTOM_ACTIONS = "custom_actions_json";
+    private static final String KEY_INITIALIZED = "has_initialized_defaults_v2";
 
     private CustomActionManager() {}
 
     public static List<CustomAction> load(Context context) {
         List<CustomAction> list = new ArrayList<>();
         SharedPreferences sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+
+        // Ensure default sample script "Disable Debugging" is populated on initial run
+        if (!sp.getBoolean(KEY_INITIALIZED, false)) {
+            list.add(new CustomAction(
+                    UUID.randomUUID().toString(),
+                    "Disable Debugging",
+                    "su -c 'settings put global adb_enabled 0; settings put global adb_wifi_enabled 0'"
+            ));
+            save(context, list);
+            sp.edit().putBoolean(KEY_INITIALIZED, true).apply();
+            return list;
+        }
+
         String json = sp.getString(KEY_CUSTOM_ACTIONS, null);
         if (json != null && !json.trim().isEmpty()) {
             try {
@@ -48,7 +63,10 @@ public final class CustomActionManager {
                 arr.put(obj);
             }
             SharedPreferences sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-            sp.edit().putString(KEY_CUSTOM_ACTIONS, arr.toString()).apply();
+            sp.edit()
+                    .putString(KEY_CUSTOM_ACTIONS, arr.toString())
+                    .putBoolean(KEY_INITIALIZED, true)
+                    .apply();
         } catch (Exception ignored) {
         }
     }

@@ -20,7 +20,7 @@
             android:layout_height="?attr/actionBarSize"
             app:title="@string/app_name"
             app:titleCentered="false"
-            app:titleTextAppearance="?attr/textAppearanceHeadlineSmall" />
+            app:titleTextAppearance="?attr/textAppearanceHeadlineMedium" />
 
         <com.google.android.material.progressindicator.LinearProgressIndicator
             android:id="@+id/progress_bar"
@@ -49,16 +49,16 @@
             android:paddingTop="8dp"
             android:paddingBottom="16dp">
 
-            <!-- Primary Status Card (No duplicate On/Off title) -->
+            <!-- Hero Status & Controls Card -->
             <com.google.android.material.card.MaterialCardView
-                android:id="@+id/card_state"
+                android:id="@+id/card_hero"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardCornerRadius="24dp"
+                app:cardCornerRadius="28dp"
                 app:cardElevation="0dp"
                 app:strokeWidth="1dp"
                 app:strokeColor="?attr/colorOutlineVariant"
-                app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+                app:cardBackgroundColor="?attr/colorSurfaceContainer"
                 android:layout_marginBottom="16dp">
 
                 <LinearLayout
@@ -67,19 +67,13 @@
                     android:orientation="vertical"
                     android:padding="20dp">
 
+                    <!-- Status Indicator & PID Row -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:gravity="center_vertical">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/title_status"
-                            android:textAppearance="?attr/textAppearanceTitleMedium"
-                            android:textColor="?attr/colorOnSurfaceVariant" />
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="20dp">
 
                         <TextView
                             android:id="@+id/text_badge_state"
@@ -87,67 +81,61 @@
                             android:layout_height="wrap_content"
                             android:text="OFF"
                             android:textStyle="bold"
-                            android:paddingStart="14dp"
-                            android:paddingEnd="14dp"
+                            android:paddingStart="16dp"
+                            android:paddingEnd="16dp"
                             android:paddingTop="6dp"
                             android:paddingBottom="6dp"
                             android:background="@drawable/bg_badge"
                             android:textColor="@android:color/white"
-                            android:textAppearance="?attr/textAppearanceLabelLarge" />
+                            android:textAppearance="?attr/textAppearanceTitleMedium" />
+
+                        <View
+                            android:layout_width="0dp"
+                            android:layout_height="1dp"
+                            android:layout_weight="1" />
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/card_pid"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:visibility="gone"
+                            app:cardCornerRadius="100dp"
+                            app:cardElevation="0dp"
+                            app:strokeWidth="1dp"
+                            app:strokeColor="?attr/colorOutlineVariant"
+                            app:cardBackgroundColor="?attr/colorSurfaceContainerHigh">
+
+                            <TextView
+                                android:id="@+id/text_pid"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="PID: —"
+                                android:paddingStart="12dp"
+                                android:paddingEnd="12dp"
+                                android:paddingTop="5dp"
+                                android:paddingBottom="5dp"
+                                android:textAppearance="?attr/textAppearanceLabelLarge"
+                                android:textColor="?attr/colorOnSurfaceVariant" />
+
+                        </com.google.android.material.card.MaterialCardView>
 
                     </LinearLayout>
 
-                    <TextView
-                        android:id="@+id/text_state_desc"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:text="@string/desc_off"
-                        android:textAppearance="?attr/textAppearanceBodyMedium"
-                        android:textColor="?attr/colorOnSurfaceVariant" />
-
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Action Controls Card -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="1dp"
-                app:strokeColor="?attr/colorOutlineVariant"
-                app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
-                android:layout_marginBottom="16dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/title_controls"
-                        android:textAppearance="?attr/textAppearanceTitleSmall"
-                        android:textColor="?attr/colorOnSurfaceVariant"
-                        android:layout_marginBottom="12dp" />
-
+                    <!-- Primary Action Buttons Row -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center">
+                        android:orientation="horizontal">
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_start"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:layout_marginEnd="6dp"
+                            android:layout_marginEnd="4dp"
                             android:text="@string/btn_start"
+                            app:icon="@drawable/ic_play"
+                            app:cornerRadius="16dp"
                             style="@style/Widget.Material3.Button" />
 
                         <com.google.android.material.button.MaterialButton
@@ -155,19 +143,23 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:layout_marginStart="3dp"
-                            android:layout_marginEnd="3dp"
+                            android:layout_marginStart="4dp"
+                            android:layout_marginEnd="4dp"
                             android:text="@string/btn_stop"
-                            style="@style/Widget.Material3.Button.OutlinedButton" />
+                            app:icon="@drawable/ic_stop"
+                            app:cornerRadius="16dp"
+                            style="@style/Widget.Material3.Button.TonalButton" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_restart"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:layout_marginStart="6dp"
+                            android:layout_marginStart="4dp"
                             android:text="@string/btn_restart"
-                            style="@style/Widget.Material3.Button.TonalButton" />
+                            app:icon="@drawable/ic_refresh"
+                            app:cornerRadius="16dp"
+                            style="@style/Widget.Material3.Button.OutlinedButton" />
 
                     </LinearLayout>
 
@@ -175,166 +167,12 @@
 
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Details Card (Only HTTP Proxy & PID) -->
-            <com.google.android.material.card.MaterialCardView
+            <!-- Custom Script Buttons Container (Direct buttons, no text headers) -->
+            <LinearLayout
+                android:id="@+id/container_custom_actions"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="1dp"
-                app:strokeColor="?attr/colorOutlineVariant"
-                app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
-                android:layout_marginBottom="16dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/title_details"
-                        android:textAppearance="?attr/textAppearanceTitleSmall"
-                        android:textColor="?attr/colorOnSurfaceVariant"
-                        android:layout_marginBottom="8dp" />
-
-                    <!-- Process PID Item -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:paddingTop="8dp"
-                        android:paddingBottom="8dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/label_pid"
-                            android:textAppearance="?attr/textAppearanceBodySmall"
-                            android:textColor="?attr/colorOnSurfaceVariant" />
-
-                        <TextView
-                            android:id="@+id/text_pid"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="@string/status_not_running"
-                            android:textAppearance="?attr/textAppearanceBodyLarge"
-                            android:textStyle="bold"
-                            android:textColor="?attr/colorOnSurface" />
-
-                    </LinearLayout>
-
-                    <com.google.android.material.divider.MaterialDivider
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content" />
-
-                    <!-- HTTP Proxy Item -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:paddingTop="8dp"
-                        android:paddingBottom="4dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/label_proxy"
-                            android:textAppearance="?attr/textAppearanceBodySmall"
-                            android:textColor="?attr/colorOnSurfaceVariant" />
-
-                        <TextView
-                            android:id="@+id/text_proxy"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="@string/status_disabled"
-                            android:textAppearance="?attr/textAppearanceBodyLarge"
-                            android:textStyle="bold"
-                            android:textColor="?attr/colorOnSurface" />
-
-                    </LinearLayout>
-
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Disable Debugging Section -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="1dp"
-                app:strokeColor="?attr/colorOutlineVariant"
-                app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
-                android:layout_marginBottom="16dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_disable_adb"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/btn_disable_adb"
-                        style="@style/Widget.Material3.Button.TonalButton" />
-
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Custom Actions Section (Execution Buttons Only) -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="1dp"
-                app:strokeColor="?attr/colorOutlineVariant"
-                app:cardBackgroundColor="?attr/colorSurfaceContainerLow">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/title_custom_actions"
-                        android:textAppearance="?attr/textAppearanceTitleSmall"
-                        android:textColor="?attr/colorOnSurfaceVariant"
-                        android:layout_marginBottom="12dp" />
-
-                    <TextView
-                        android:id="@+id/text_empty_custom_actions"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/empty_custom_actions_home"
-                        android:textAppearance="?attr/textAppearanceBodySmall"
-                        android:textColor="?attr/colorOutline"
-                        android:gravity="center"
-                        android:paddingTop="8dp"
-                        android:paddingBottom="8dp"
-                        android:visibility="gone" />
-
-                    <LinearLayout
-                        android:id="@+id/container_custom_actions"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical" />
-
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
+                android:orientation="vertical" />
 
         </LinearLayout>
 
