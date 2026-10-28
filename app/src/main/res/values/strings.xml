@@ -2,11 +2,14 @@
     <string name="app_name">Xray</string>
     <string name="tile_label_normal">Xray</string>
     <string name="tile_label_exited">Xray Exited</string>
-    <string name="state_on">On</string>
-    <string name="state_off">Off</string>
-    <string name="state_exited">Exited</string>
-    <string name="state_error">Error</string>
-    <string name="state_root_denied">Root Denied / Unavailable</string>
+    <string name="state_on">已连接</string>
+    <string name="state_off">未连接</string>
+    <string name="state_exited">异常退出</string>
+    <string name="state_error">连接失败</string>
+    <string name="state_root_denied">未授予 Root 权限</string>
+    <string name="status_not_running">服务未运行</string>
+    <string name="status_uptime_pid">PID %1$s • 运行时间 %2$s</string>
+    <string name="btn_restart_core">重启核心</string>
 
     <string name="title_status">Current Status</string>
     <string name="title_details">System &amp; Process Details</string>
@@ -21,7 +24,6 @@
     <string name="label_proxy">HTTP Proxy</string>
     <string name="label_pid">Process PID</string>
 
-    <string name="status_not_running">Not Running (—)</string>
     <string name="status_active">%1$s (Enabled)</string>
     <string name="status_disabled">:0 (Disabled)</string>
     <string name="status_custom">%1$s</string>

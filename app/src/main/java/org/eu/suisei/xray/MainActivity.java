@@ -2,14 +2,15 @@ package org.eu.suisei.xray;
 
 import android.content.ComponentName;
 import android.content.Intent;
+import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.graphics.Color;
-import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.service.quicksettings.TileService;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.LinearLayout;
@@ -26,17 +27,20 @@ import androidx.core.view.WindowInsetsControllerCompat;
 
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.color.DynamicColors;
 import com.google.android.material.progressindicator.LinearProgressIndicator;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * MD3 Management UI opened from launcher icon or long-pressing the Xray Quick Settings tile.
+ * MD3 Management UI with Scheme B (Central Power Toggle).
  * Zero background persistence and ultra-low battery consumption.
  */
 public class MainActivity extends AppCompatActivity {
@@ -45,15 +49,30 @@ public class MainActivity extends AppCompatActivity {
     private final AtomicBoolean isExecuting = new AtomicBoolean(false);
 
     private LinearProgressIndicator progressBar;
-    private TextView textBadgeState;
-    private TextView textPid;
-    private MaterialButton btnStart;
-    private MaterialButton btnStop;
+    private MaterialCardView cardPowerOuter;
+    private MaterialButton btnPowerToggle;
+    private TextView textStatusTitle;
+    private TextView textStatusSubtitle;
     private MaterialButton btnRestart;
     private LinearLayout containerCustomActions;
 
+    private RootShell.State currentState = RootShell.State.OFF;
+    private String currentPid = null;
+    private long currentStartTimeMs = 0L;
+
+    private final Runnable uptimeTicker = new Runnable() {
+        @Override
+        public void run() {
+            if (currentState == RootShell.State.ON && currentPid != null) {
+                updateUptimeText();
+                mainHandler.postDelayed(this, 1000);
+            }
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        DynamicColors.applyIfAvailable(this);
         if (!shouldHandleIntent(getIntent())) {
             finish();
             overridePendingTransition(0, 0);
@@ -146,14 +165,19 @@ public class MainActivity extends AppCompatActivity {
         renderCustomActions();
     }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+        mainHandler.removeCallbacks(uptimeTicker);
+    }
+
     private void initViews() {
         progressBar = findViewById(R.id.progress_bar);
-        textBadgeState = findViewById(R.id.text_badge_state);
-        textPid = findViewById(R.id.text_pid);
-        btnStart = findViewById(R.id.btn_start);
-        btnStop = findViewById(R.id.btn_stop);
+        cardPowerOuter = findViewById(R.id.card_power_outer);
+        btnPowerToggle = findViewById(R.id.btn_power_toggle);
+        textStatusTitle = findViewById(R.id.text_status_title);
+        textStatusSubtitle = findViewById(R.id.text_status_subtitle);
         btnRestart = findViewById(R.id.btn_restart);
-
         containerCustomActions = findViewById(R.id.container_custom_actions);
     }
 
@@ -175,8 +199,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupActions() {
-        btnStart.setOnClickListener(v -> executeAction(() -> RootShell.startService(MainActivity.this)));
-        btnStop.setOnClickListener(v -> executeAction(() -> RootShell.stopService(MainActivity.this)));
+        btnPowerToggle.setOnClickListener(v -> {
+            if (currentState == RootShell.State.ON) {
+                executeAction(() -> RootShell.stopService(MainActivity.this));
+            } else {
+                executeAction(() -> RootShell.startService(MainActivity.this));
+            }
+        });
+
         btnRestart.setOnClickListener(v -> executeAction(() -> RootShell.restartService(MainActivity.this)));
     }
 
@@ -208,6 +238,7 @@ public class MainActivity extends AppCompatActivity {
                         RootShell.State.ERROR,
                         "Unknown",
                         null,
+                        0L,
                         false,
                         false
                 );
@@ -227,51 +258,116 @@ public class MainActivity extends AppCompatActivity {
 
     private void setBusy(boolean busy) {
         progressBar.setVisibility(busy ? View.VISIBLE : View.GONE);
-        btnStart.setEnabled(!busy);
-        btnStop.setEnabled(!busy);
+        btnPowerToggle.setEnabled(!busy);
         btnRestart.setEnabled(!busy);
     }
 
     private void bindStatus(RootShell.DetailedStatus status) {
+        currentState = status.state;
+        currentPid = status.pid;
+
         if (!status.isRootGranted) {
-            setBadge(getString(R.string.state_root_denied).toUpperCase(), Color.parseColor("#B00020"));
-            textPid.setVisibility(View.GONE);
+            textStatusTitle.setText(R.string.state_root_denied);
+            textStatusTitle.setTextColor(Color.parseColor("#B00020"));
+            textStatusSubtitle.setText(R.string.status_not_running);
+
+            cardPowerOuter.setCardBackgroundColor(Color.parseColor("#2A1515"));
+            cardPowerOuter.setStrokeColor(Color.parseColor("#B00020"));
+            btnPowerToggle.setIconTint(ColorStateList.valueOf(Color.parseColor("#EF5350")));
+            mainHandler.removeCallbacks(uptimeTicker);
         } else {
             switch (status.state) {
                 case ON:
-                    setBadge(getString(R.string.state_on).toUpperCase(), Color.parseColor("#2E7D32"));
-                    if (status.pid != null && !status.pid.isEmpty()) {
-                        textPid.setText("PID: " + status.pid);
-                        textPid.setVisibility(View.VISIBLE);
-                    } else {
-                        textPid.setVisibility(View.GONE);
+                    textStatusTitle.setText(R.string.state_on); // "已连接"
+                    textStatusTitle.setTextColor(Color.parseColor("#2E7D32"));
+
+                    cardPowerOuter.setCardBackgroundColor(Color.parseColor("#152B18"));
+                    cardPowerOuter.setStrokeColor(Color.parseColor("#4CAF50"));
+                    btnPowerToggle.setIconTint(ColorStateList.valueOf(Color.parseColor("#81C784")));
+
+                    if (status.startTimeMs > 0) {
+                        currentStartTimeMs = status.startTimeMs;
+                    } else if (currentStartTimeMs <= 0) {
+                        currentStartTimeMs = System.currentTimeMillis();
                     }
+
+                    updateUptimeText();
+                    mainHandler.removeCallbacks(uptimeTicker);
+                    mainHandler.postDelayed(uptimeTicker, 1000);
                     break;
+
                 case EXITED:
-                    setBadge(getString(R.string.state_exited).toUpperCase(), Color.parseColor("#E65100"));
-                    textPid.setVisibility(View.GONE);
+                    textStatusTitle.setText(R.string.state_exited); // "异常退出"
+                    textStatusTitle.setTextColor(Color.parseColor("#E65100"));
+                    textStatusSubtitle.setText(R.string.status_not_running);
+
+                    cardPowerOuter.setCardBackgroundColor(Color.parseColor("#2B2115"));
+                    cardPowerOuter.setStrokeColor(Color.parseColor("#FB8C00"));
+                    btnPowerToggle.setIconTint(ColorStateList.valueOf(Color.parseColor("#FFB74D")));
+
+                    currentStartTimeMs = 0L;
+                    mainHandler.removeCallbacks(uptimeTicker);
                     break;
+
                 case OFF:
-                    setBadge(getString(R.string.state_off).toUpperCase(), Color.parseColor("#616161"));
-                    textPid.setVisibility(View.GONE);
+                    textStatusTitle.setText(R.string.state_off); // "未连接"
+                    textStatusTitle.setTextColor(getColorFromAttr(com.google.android.material.R.attr.colorOnSurfaceVariant));
+                    textStatusSubtitle.setText(R.string.status_not_running);
+
+                    cardPowerOuter.setCardBackgroundColor(getColorFromAttr(com.google.android.material.R.attr.colorSurfaceContainerHigh));
+                    cardPowerOuter.setStrokeColor(getColorFromAttr(com.google.android.material.R.attr.colorOutlineVariant));
+                    btnPowerToggle.setIconTint(ColorStateList.valueOf(getColorFromAttr(com.google.android.material.R.attr.colorOutline)));
+
+                    currentStartTimeMs = 0L;
+                    mainHandler.removeCallbacks(uptimeTicker);
                     break;
+
                 case ERROR:
                 default:
-                    setBadge(getString(R.string.state_error).toUpperCase(), Color.parseColor("#C62828"));
-                    textPid.setVisibility(View.GONE);
+                    textStatusTitle.setText(R.string.state_error); // "连接失败"
+                    textStatusTitle.setTextColor(Color.parseColor("#C62828"));
+                    textStatusSubtitle.setText(R.string.status_not_running);
+
+                    cardPowerOuter.setCardBackgroundColor(Color.parseColor("#2A1515"));
+                    cardPowerOuter.setStrokeColor(Color.parseColor("#C62828"));
+                    btnPowerToggle.setIconTint(ColorStateList.valueOf(Color.parseColor("#EF5350")));
+
+                    currentStartTimeMs = 0L;
+                    mainHandler.removeCallbacks(uptimeTicker);
                     break;
             }
         }
         refreshCustomActionConditions();
     }
 
-    private void setBadge(String text, int color) {
-        textBadgeState.setText(text);
-        GradientDrawable drawable = new GradientDrawable();
-        drawable.setShape(GradientDrawable.RECTANGLE);
-        drawable.setCornerRadius(16f * getResources().getDisplayMetrics().density);
-        drawable.setColor(color);
-        textBadgeState.setBackground(drawable);
+    private void updateUptimeText() {
+        if (currentPid == null || currentPid.isEmpty()) {
+            textStatusSubtitle.setText(R.string.status_not_running);
+            return;
+        }
+
+        if (currentStartTimeMs <= 0) {
+            textStatusSubtitle.setText("PID " + currentPid);
+            return;
+        }
+
+        long diffSec = Math.max(0, (System.currentTimeMillis() - currentStartTimeMs) / 1000);
+        long hours = diffSec / 3600;
+        long minutes = (diffSec % 3600) / 60;
+        long seconds = diffSec % 60;
+        String timeStr;
+        if (hours > 0) {
+            timeStr = String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds);
+        } else {
+            timeStr = String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds);
+        }
+        textStatusSubtitle.setText(getString(R.string.status_uptime_pid, currentPid, timeStr));
+    }
+
+    private int getColorFromAttr(int attr) {
+        TypedValue typedValue = new TypedValue();
+        getTheme().resolveAttribute(attr, typedValue, true);
+        return typedValue.data;
     }
 
     // ==========================================
@@ -307,7 +403,7 @@ public class MainActivity extends AppCompatActivity {
                 final int index = i;
                 if (action.conditionCommand != null && !action.conditionCommand.trim().isEmpty()) {
                     boolean isTrue = evaluateCondition(action.conditionCommand);
-                    // "当命令为真时，该框禁用" -> disabled when condition is true
+                    // "当命令为真时，该框禁用"
                     mainHandler.post(() -> {
                         if (index < containerCustomActions.getChildCount()) {
                             View child = containerCustomActions.getChildAt(index);

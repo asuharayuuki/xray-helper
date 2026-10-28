@@ -47,14 +47,16 @@ public final class RootShell {
         public final State state;
         public final String httpProxy;
         public final String pid;
+        public final long startTimeMs;
         public final boolean isRootGranted;
         public final boolean isAdbEnabled;
 
-        public DetailedStatus(State state, String httpProxy, String pid,
+        public DetailedStatus(State state, String httpProxy, String pid, long startTimeMs,
                               boolean isRootGranted, boolean isAdbEnabled) {
             this.state = state;
             this.httpProxy = httpProxy;
             this.pid = pid;
+            this.startTimeMs = startTimeMs;
             this.isRootGranted = isRootGranted;
             this.isAdbEnabled = isAdbEnabled;
         }
@@ -112,8 +114,13 @@ public final class RootShell {
                 "    x=$(pidof " + procName + ")\n" +
                 "    adb_u=$(settings get global adb_enabled)\n" +
                 "    adb_w=$(settings get global adb_wifi_enabled)\n" +
+                "    st=\"\"\n" +
+                "    if [ -n \"$x\" ]; then\n" +
+                "        st=$(stat -c %Y /proc/$x 2>/dev/null || date -r /proc/$x +%s 2>/dev/null)\n" +
+                "    fi\n" +
                 "    echo \"PROXY=$p\"\n" +
                 "    echo \"PID=$x\"\n" +
+                "    echo \"START_TIME=$st\"\n" +
                 "    echo \"ADB_USB=$adb_u\"\n" +
                 "    echo \"ADB_WIFI=$adb_w\"\n" +
                 "    if [ \"$p\" = \"" + proxy + "\" ]; then\n" +
@@ -381,18 +388,19 @@ public final class RootShell {
             if (!finished) {
                 process.destroyForcibly();
                 readerThread.interrupt();
-                return new DetailedStatus(State.ERROR, "Unknown", null, false, false);
+                return new DetailedStatus(State.ERROR, "Unknown", null, 0L, false, false);
             }
 
             readerThread.join(1000);
 
             if (process.exitValue() != 0) {
-                return new DetailedStatus(State.ERROR, "Unknown", null, false, false);
+                return new DetailedStatus(State.ERROR, "Unknown", null, 0L, false, false);
             }
 
             boolean isRootGranted = true;
             String proxy = null;
             String pid = null;
+            long startTimeMs = 0L;
             boolean isAdbEnabled = false;
             State state = State.ERROR;
 
@@ -403,6 +411,14 @@ public final class RootShell {
                     pid = line.substring(4).trim();
                     if (pid.isEmpty()) {
                         pid = null;
+                    }
+                } else if (line.startsWith("START_TIME=")) {
+                    String val = line.substring(11).trim();
+                    if (!val.isEmpty()) {
+                        try {
+                            startTimeMs = Long.parseLong(val) * 1000L;
+                        } catch (Exception ignored) {
+                        }
                     }
                 } else if (line.startsWith("ADB_USB=")) {
                     String val = line.substring(8).trim();
@@ -428,12 +444,12 @@ public final class RootShell {
                 }
             }
 
-            return new DetailedStatus(state, proxy, pid, isRootGranted, isAdbEnabled);
+            return new DetailedStatus(state, proxy, pid, startTimeMs, isRootGranted, isAdbEnabled);
         } catch (Exception e) {
             if (process != null) {
                 process.destroyForcibly();
             }
-            return new DetailedStatus(State.ERROR, "Unknown", null, false, false);
+            return new DetailedStatus(State.ERROR, "Unknown", null, 0L, false, false);
         }
     }
 }
