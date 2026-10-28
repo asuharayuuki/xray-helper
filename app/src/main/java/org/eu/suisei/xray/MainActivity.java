@@ -1,9 +1,7 @@
 package org.eu.suisei.xray;
 
 import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
@@ -19,7 +17,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -29,43 +26,20 @@ import androidx.core.view.WindowInsetsControllerCompat;
 
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.progressindicator.LinearProgressIndicator;
-import com.google.android.material.textfield.TextInputEditText;
-import com.google.android.material.textfield.TextInputLayout;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * MD3 Management UI opened by long-pressing the Xray Quick Settings tile.
+ * MD3 Management UI opened from launcher icon or long-pressing the Xray Quick Settings tile.
  * Zero background persistence and ultra-low battery consumption.
  */
 public class MainActivity extends AppCompatActivity {
-
-    private static final String PREFS_NAME = "xray_custom_actions";
-    private static final String KEY_CUSTOM_ACTIONS = "custom_actions_json";
-
-    public static class CustomAction {
-        public String id;
-        public String name;
-        public String command;
-
-        public CustomAction(String id, String name, String command) {
-            this.id = id;
-            this.name = name;
-            this.command = command;
-        }
-    }
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final AtomicBoolean isExecuting = new AtomicBoolean(false);
@@ -80,7 +54,6 @@ public class MainActivity extends AppCompatActivity {
     private MaterialButton btnRestart;
     private MaterialButton btnDisableAdb;
 
-    private MaterialButton btnAddCustomAction;
     private TextView textEmptyCustomActions;
     private LinearLayout containerCustomActions;
 
@@ -102,7 +75,6 @@ public class MainActivity extends AppCompatActivity {
         initViews();
         setupToolbar();
         setupActions();
-        renderCustomActions();
     }
 
     @Override
@@ -116,8 +88,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Ensures only the Xray tile's long-press opens this activity.
-     * Long-pressing Caffeine or Record will not open the Xray panel.
+     * Ensures long-pressing Caffeine or Record will not open the Xray panel.
      */
     private boolean shouldHandleIntent(Intent intent) {
         if (intent == null) return true;
@@ -179,6 +150,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         loadStatus();
+        renderCustomActions();
     }
 
     private void initViews() {
@@ -192,7 +164,6 @@ public class MainActivity extends AppCompatActivity {
         btnRestart = findViewById(R.id.btn_restart);
         btnDisableAdb = findViewById(R.id.btn_disable_adb);
 
-        btnAddCustomAction = findViewById(R.id.btn_add_custom_action);
         textEmptyCustomActions = findViewById(R.id.text_empty_custom_actions);
         containerCustomActions = findViewById(R.id.container_custom_actions);
     }
@@ -201,8 +172,12 @@ public class MainActivity extends AppCompatActivity {
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         toolbar.inflateMenu(R.menu.menu_main);
         toolbar.setOnMenuItemClickListener(item -> {
-            if (item.getItemId() == R.id.action_refresh) {
+            int id = item.getItemId();
+            if (id == R.id.action_refresh) {
                 loadStatus();
+                return true;
+            } else if (id == R.id.action_settings) {
+                startActivity(new Intent(this, SettingsActivity.class));
                 return true;
             }
             return false;
@@ -210,19 +185,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupActions() {
-        btnStart.setOnClickListener(v -> executeAction(RootShell::startService));
-        btnStop.setOnClickListener(v -> executeAction(RootShell::stopService));
-        btnRestart.setOnClickListener(v -> executeAction(RootShell::restartService));
-        btnDisableAdb.setOnClickListener(v -> executeAction(RootShell::disableDebugging));
-
-        btnAddCustomAction.setOnClickListener(v -> showCustomActionDialog(null));
+        btnStart.setOnClickListener(v -> executeAction(() -> RootShell.startService(MainActivity.this)));
+        btnStop.setOnClickListener(v -> executeAction(() -> RootShell.stopService(MainActivity.this)));
+        btnRestart.setOnClickListener(v -> executeAction(() -> RootShell.restartService(MainActivity.this)));
+        btnDisableAdb.setOnClickListener(v -> executeAction(() -> RootShell.disableDebugging(MainActivity.this)));
     }
 
     private void loadStatus() {
         if (isExecuting.get()) {
             return;
         }
-        executeAction(RootShell::queryDetailedStatus);
+        executeAction(() -> RootShell.queryDetailedStatus(MainActivity.this));
     }
 
     @FunctionalInterface
@@ -310,8 +283,9 @@ public class MainActivity extends AppCompatActivity {
         }
 
         // Proxy
+        String configuredProxy = AppConfig.getHttpProxy(this);
         if (status.httpProxy != null && !status.httpProxy.isEmpty()) {
-            if ("127.0.0.1:2080".equals(status.httpProxy)) {
+            if (configuredProxy.equals(status.httpProxy)) {
                 textProxy.setText(R.string.status_active);
                 textProxy.setTextColor(Color.parseColor("#2E7D32"));
             } else if (":0".equals(status.httpProxy) || "null".equalsIgnoreCase(status.httpProxy)) {
@@ -341,49 +315,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // ==========================================
-    // Custom Buttons Management & Execution
+    // Custom Buttons Execution
     // ==========================================
-
-    private List<CustomAction> loadCustomActions() {
-        List<CustomAction> list = new ArrayList<>();
-        SharedPreferences sp = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        String json = sp.getString(KEY_CUSTOM_ACTIONS, null);
-        if (json != null && !json.trim().isEmpty()) {
-            try {
-                JSONArray arr = new JSONArray(json);
-                for (int i = 0; i < arr.length(); i++) {
-                    JSONObject obj = arr.getJSONObject(i);
-                    list.add(new CustomAction(
-                            obj.getString("id"),
-                            obj.getString("name"),
-                            obj.getString("command")
-                    ));
-                }
-            } catch (Exception ignored) {
-            }
-        }
-        return list;
-    }
-
-    private void saveCustomActions(List<CustomAction> list) {
-        try {
-            JSONArray arr = new JSONArray();
-            for (CustomAction action : list) {
-                JSONObject obj = new JSONObject();
-                obj.put("id", action.id);
-                obj.put("name", action.name);
-                obj.put("command", action.command);
-                arr.put(obj);
-            }
-            SharedPreferences sp = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-            sp.edit().putString(KEY_CUSTOM_ACTIONS, arr.toString()).apply();
-        } catch (Exception ignored) {
-        }
-    }
 
     private void renderCustomActions() {
         containerCustomActions.removeAllViews();
-        List<CustomAction> actions = loadCustomActions();
+        List<CustomAction> actions = CustomActionManager.load(this);
 
         if (actions.isEmpty()) {
             textEmptyCustomActions.setVisibility(View.VISIBLE);
@@ -391,93 +328,12 @@ public class MainActivity extends AppCompatActivity {
             textEmptyCustomActions.setVisibility(View.GONE);
             LayoutInflater inflater = LayoutInflater.from(this);
             for (CustomAction action : actions) {
-                View itemView = inflater.inflate(R.layout.item_custom_action, containerCustomActions, false);
-                MaterialButton btnAction = itemView.findViewById(R.id.btn_custom_action);
-                MaterialButton btnEdit = itemView.findViewById(R.id.btn_edit_custom_action);
-
+                MaterialButton btnAction = (MaterialButton) inflater.inflate(R.layout.item_custom_action, containerCustomActions, false);
                 btnAction.setText(action.name);
                 btnAction.setOnClickListener(v -> executeCustomCommand(action.command));
-                btnAction.setOnLongClickListener(v -> {
-                    showCustomActionDialog(action);
-                    return true;
-                });
-
-                btnEdit.setOnClickListener(v -> showCustomActionDialog(action));
-
-                containerCustomActions.addView(itemView);
+                containerCustomActions.addView(btnAction);
             }
         }
-    }
-
-    private void showCustomActionDialog(@Nullable CustomAction existingAction) {
-        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_custom_action, null);
-        TextInputLayout layoutName = dialogView.findViewById(R.id.layout_action_name);
-        TextInputLayout layoutCommand = dialogView.findViewById(R.id.layout_action_command);
-        TextInputEditText editName = dialogView.findViewById(R.id.edit_action_name);
-        TextInputEditText editCommand = dialogView.findViewById(R.id.edit_action_command);
-
-        boolean isEditing = (existingAction != null);
-        if (isEditing) {
-            editName.setText(existingAction.name);
-            editCommand.setText(existingAction.command);
-        }
-
-        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this)
-                .setTitle(isEditing ? R.string.dialog_title_edit : R.string.dialog_title_add)
-                .setView(dialogView)
-                .setPositiveButton(R.string.btn_save, null)
-                .setNegativeButton(R.string.btn_cancel, (d, w) -> d.dismiss());
-
-        if (isEditing) {
-            builder.setNeutralButton(R.string.btn_delete, (d, w) -> {
-                List<CustomAction> actions = loadCustomActions();
-                actions.removeIf(a -> a.id.equals(existingAction.id));
-                saveCustomActions(actions);
-                renderCustomActions();
-            });
-        }
-
-        androidx.appcompat.app.AlertDialog dialog = builder.create();
-        dialog.show();
-
-        // Override positive button to prevent auto-dismiss if validation fails
-        dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-            String name = editName.getText() != null ? editName.getText().toString().trim() : "";
-            String command = editCommand.getText() != null ? editCommand.getText().toString().trim() : "";
-
-            boolean valid = true;
-            if (name.isEmpty()) {
-                layoutName.setError(getString(R.string.error_name_empty));
-                valid = false;
-            } else {
-                layoutName.setError(null);
-            }
-
-            if (command.isEmpty()) {
-                layoutCommand.setError(getString(R.string.error_command_empty));
-                valid = false;
-            } else {
-                layoutCommand.setError(null);
-            }
-
-            if (valid) {
-                List<CustomAction> actions = loadCustomActions();
-                if (isEditing) {
-                    for (CustomAction a : actions) {
-                        if (a.id.equals(existingAction.id)) {
-                            a.name = name;
-                            a.command = command;
-                            break;
-                        }
-                    }
-                } else {
-                    actions.add(new CustomAction(UUID.randomUUID().toString(), name, command));
-                }
-                saveCustomActions(actions);
-                renderCustomActions();
-                dialog.dismiss();
-            }
-        });
     }
 
     private void executeCustomCommand(String command) {

@@ -290,7 +290,7 @@
 
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Custom Actions Section -->
+            <!-- Custom Actions Section (Execution Buttons Only) -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -306,41 +306,24 @@
                     android:orientation="vertical"
                     android:padding="16dp">
 
-                    <LinearLayout
+                    <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:layout_marginBottom="8dp">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/title_custom_actions"
-                            android:textAppearance="?attr/textAppearanceTitleSmall"
-                            android:textColor="?attr/colorOnSurfaceVariant" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btn_add_custom_action"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/btn_add_action"
-                            app:icon="@drawable/ic_add"
-                            style="@style/Widget.Material3.Button.TextButton" />
-
-                    </LinearLayout>
+                        android:text="@string/title_custom_actions"
+                        android:textAppearance="?attr/textAppearanceTitleSmall"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:layout_marginBottom="12dp" />
 
                     <TextView
                         android:id="@+id/text_empty_custom_actions"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/empty_custom_actions"
+                        android:text="@string/empty_custom_actions_home"
                         android:textAppearance="?attr/textAppearanceBodySmall"
                         android:textColor="?attr/colorOutline"
                         android:gravity="center"
-                        android:paddingTop="12dp"
-                        android:paddingBottom="12dp"
+                        android:paddingTop="8dp"
+                        android:paddingBottom="8dp"
                         android:visibility="gone" />
 
                     <LinearLayout

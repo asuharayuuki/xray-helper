@@ -22,13 +22,13 @@
     <string name="label_pid">Process PID</string>
 
     <string name="status_not_running">Not Running (—)</string>
-    <string name="status_active">127.0.0.1:2080 (Enabled)</string>
+    <string name="status_active">%1$s (Enabled)</string>
     <string name="status_disabled">:0 (Disabled)</string>
     <string name="status_custom">%1$s</string>
 
     <string name="desc_on">Xray process is active and global HTTP proxy is configured.</string>
     <string name="desc_off">HTTP proxy is disabled.</string>
-    <string name="desc_exited">HTTP proxy is set to 127.0.0.1:2080, but Xray is stopped.</string>
+    <string name="desc_exited">HTTP proxy is configured, but Xray is stopped.</string>
     <string name="desc_error">Operation failed or root access was denied.</string>
 
     <!-- Caffeine Strings -->
@@ -42,7 +42,8 @@
     <!-- Custom Actions Strings -->
     <string name="title_custom_actions">Custom Actions</string>
     <string name="btn_add_action">Add</string>
-    <string name="empty_custom_actions">No custom buttons yet. Tap Add to create one.</string>
+    <string name="empty_custom_actions">No custom scripts configured.</string>
+    <string name="empty_custom_actions_home">No custom scripts yet. Configure in Settings.</string>
     <string name="dialog_title_add">Add Custom Button</string>
     <string name="dialog_title_edit">Edit Custom Button</string>
     <string name="hint_button_name">Button Name</string>
@@ -52,4 +53,17 @@
     <string name="btn_save">Save</string>
     <string name="btn_cancel">Cancel</string>
     <string name="btn_delete">Delete</string>
+
+    <!-- Settings Strings -->
+    <string name="title_settings">Settings</string>
+    <string name="title_xray_commands">Xray Commands</string>
+    <string name="desc_xray_commands">Configure root shell commands used for starting, stopping, and proxy verification.</string>
+    <string name="label_start_cmd">Start Command</string>
+    <string name="label_stop_cmd">Stop Command</string>
+    <string name="label_proxy_address">HTTP Proxy Address</string>
+    <string name="label_process_name">Process Name</string>
+    <string name="btn_reset_defaults">Reset Defaults</string>
+    <string name="msg_commands_saved">Commands saved</string>
+    <string name="msg_defaults_restored">Defaults restored</string>
+    <string name="desc_custom_scripts_manage">Manage custom buttons executed from the control panel.</string>
 </resources>

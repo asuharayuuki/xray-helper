@@ -24,13 +24,20 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
 
-            <!-- Direct invocation action without launcher icon -->
+            <!-- Launcher action for desktop app icon -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
         </activity>
+
+        <!-- Settings Activity -->
+        <activity
+            android:name=".SettingsActivity"
+            android:label="@string/title_settings"
+            android:exported="false"
+            android:theme="@style/Theme.Xray" />
 
         <!-- Quick Settings Tile Service (Xray) -->
         <service

@@ -1,5 +1,7 @@
 package org.eu.suisei.xray;
 
+import android.content.Context;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
@@ -10,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Executes root shell commands for Xray process, HTTP proxy, and debugging management.
  * Follows the Single Transaction principle to minimize root overhead.
+ * Commands and proxy parameters are dynamically read from AppConfig.
  */
 public final class RootShell {
 
@@ -60,130 +63,66 @@ public final class RootShell {
     private static final long TOGGLE_TIMEOUT_MS = 10000L;
     private static final long QUERY_TIMEOUT_MS = 5000L;
 
-    private static final String SCRIPT_FUNCTIONS =
-            "stop_xray() {\n" +
-            "    p=$(pidof xray)\n" +
-            "    if [ -n \"$p\" ]; then\n" +
-            "        kill $p 2>/dev/null\n" +
-            "        i=0\n" +
-            "        while [ $i -lt 10 ]; do\n" +
-            "            [ -z \"$(pidof xray)\" ] && break\n" +
-            "            usleep 150000 2>/dev/null || sleep 1\n" +
-            "            i=$((i + 1))\n" +
-            "        done\n" +
-            "        p=$(pidof xray)\n" +
-            "        if [ -n \"$p\" ]; then\n" +
-            "            kill -9 $p 2>/dev/null\n" +
-            "            i=0\n" +
-            "            while [ $i -lt 5 ]; do\n" +
-            "                [ -z \"$(pidof xray)\" ] && break\n" +
-            "                usleep 100000 2>/dev/null || sleep 1\n" +
-            "                i=$((i + 1))\n" +
-            "            done\n" +
-            "        fi\n" +
-            "    fi\n" +
-            "    [ -z \"$(pidof xray)\" ]\n" +
-            "}\n" +
-            "start_xray() {\n" +
-            "    /system/bin/setsid -d /data/local/tmp/xray/xray run -c /data/local/tmp/xray/config.json </dev/null >/dev/null 2>&1 &\n" +
-            "    i=0\n" +
-            "    while [ $i -lt 10 ]; do\n" +
-            "        usleep 150000 2>/dev/null || sleep 1\n" +
-            "        [ -n \"$(pidof xray)\" ] && return 0\n" +
-            "        i=$((i + 1))\n" +
-            "    done\n" +
-            "    return 1\n" +
-            "}\n" +
-            "set_proxy() {\n" +
-            "    settings put global http_proxy 127.0.0.1:2080\n" +
-            "    [ \"$(settings get global http_proxy)\" = \"127.0.0.1:2080\" ]\n" +
-            "}\n" +
-            "clear_proxy() {\n" +
-            "    settings put global http_proxy :0\n" +
-            "    [ \"$(settings get global http_proxy)\" != \"127.0.0.1:2080\" ]\n" +
-            "}\n" +
-            "report_status() {\n" +
-            "    p=$(settings get global http_proxy)\n" +
-            "    x=$(pidof xray)\n" +
-            "    adb_u=$(settings get global adb_enabled)\n" +
-            "    adb_w=$(settings get global adb_wifi_enabled)\n" +
-            "    echo \"PROXY=$p\"\n" +
-            "    echo \"PID=$x\"\n" +
-            "    echo \"ADB_USB=$adb_u\"\n" +
-            "    echo \"ADB_WIFI=$adb_w\"\n" +
-            "    if [ \"$p\" = \"127.0.0.1:2080\" ]; then\n" +
-            "        [ -n \"$x\" ] && echo \"STATE=ON\" || echo \"STATE=EXITED\"\n" +
-            "    else\n" +
-            "        echo \"STATE=OFF\"\n" +
-            "    fi\n" +
-            "}\n";
+    private static String buildScriptFunctions(Context context) {
+        String startCmd = AppConfig.getStartCommand(context);
+        String stopCmd = AppConfig.getStopCommand(context);
+        String proxy = AppConfig.getHttpProxy(context);
+        String procName = AppConfig.getProcessName(context);
 
-    private static final String TOGGLE_SCRIPT =
-            SCRIPT_FUNCTIONS +
-            "p=$(settings get global http_proxy)\n" +
-            "x=$(pidof xray)\n" +
-            "res=\"OK\"\n" +
-            "if [ \"$p\" = \"127.0.0.1:2080\" ]; then\n" +
-            "    if [ -n \"$x\" ]; then\n" +
-            "        clear_proxy\n" +
-            "        if ! stop_xray; then\n" +
-            "            res=\"ERROR\"\n" +
-            "        fi\n" +
-            "    else\n" +
-            "        if start_xray; then\n" +
-            "            if ! set_proxy; then\n" +
-            "                stop_xray\n" +
-            "                res=\"ERROR\"\n" +
-            "            fi\n" +
-            "        else\n" +
-            "            clear_proxy\n" +
-            "            res=\"ERROR\"\n" +
-            "        fi\n" +
-            "    fi\n" +
-            "else\n" +
-            "    if [ -n \"$x\" ]; then\n" +
-            "        if stop_xray; then\n" +
-            "            if start_xray; then\n" +
-            "                if ! set_proxy; then\n" +
-            "                    stop_xray\n" +
-            "                    res=\"ERROR\"\n" +
-            "                fi\n" +
-            "            else\n" +
-            "                res=\"ERROR\"\n" +
-            "            fi\n" +
-            "        else\n" +
-            "            res=\"ERROR\"\n" +
-            "        fi\n" +
-            "    else\n" +
-            "        if start_xray; then\n" +
-            "            if ! set_proxy; then\n" +
-            "                stop_xray\n" +
-            "                res=\"ERROR\"\n" +
-            "            fi\n" +
-            "        else\n" +
-            "            res=\"ERROR\"\n" +
-            "        fi\n" +
-            "    fi\n" +
-            "fi\n" +
-            "fp=$(settings get global http_proxy)\n" +
-            "fx=$(pidof xray)\n" +
-            "if [ \"$fp\" = \"127.0.0.1:2080\" ]; then\n" +
-            "    [ -n \"$fx\" ] && final_state=\"ON\" || final_state=\"EXITED\"\n" +
-            "else\n" +
-            "    final_state=\"OFF\"\n" +
-            "fi\n" +
-            "echo \"RESULT=$res\"\n" +
-            "echo \"STATE=$final_state\"\n";
-
-    private static final String QUERY_SCRIPT =
-            "p=$(settings get global http_proxy)\n" +
-            "x=$(pidof xray)\n" +
-            "if [ \"$p\" = \"127.0.0.1:2080\" ]; then\n" +
-            "    [ -n \"$x\" ] && echo \"STATE=ON\" || echo \"STATE=EXITED\"\n" +
-            "else\n" +
-            "    echo \"STATE=OFF\"\n" +
-            "fi\n" +
-            "echo \"RESULT=OK\"\n";
+        return "stop_xray() {\n" +
+                stopCmd + "\n" +
+                "    i=0\n" +
+                "    while [ $i -lt 10 ]; do\n" +
+                "        [ -z \"$(pidof " + procName + ")\" ] && break\n" +
+                "        usleep 150000 2>/dev/null || sleep 1\n" +
+                "        i=$((i + 1))\n" +
+                "    done\n" +
+                "    p=$(pidof " + procName + ")\n" +
+                "    if [ -n \"$p\" ]; then\n" +
+                "        kill -9 $p 2>/dev/null\n" +
+                "        i=0\n" +
+                "        while [ $i -lt 5 ]; do\n" +
+                "            [ -z \"$(pidof " + procName + ")\" ] && break\n" +
+                "            usleep 100000 2>/dev/null || sleep 1\n" +
+                "            i=$((i + 1))\n" +
+                "        done\n" +
+                "    fi\n" +
+                "    [ -z \"$(pidof " + procName + ")\" ]\n" +
+                "}\n" +
+                "start_xray() {\n" +
+                startCmd + "\n" +
+                "    i=0\n" +
+                "    while [ $i -lt 10 ]; do\n" +
+                "        usleep 150000 2>/dev/null || sleep 1\n" +
+                "        [ -n \"$(pidof " + procName + ")\" ] && return 0\n" +
+                "        i=$((i + 1))\n" +
+                "    done\n" +
+                "    return 1\n" +
+                "}\n" +
+                "set_proxy() {\n" +
+                "    settings put global http_proxy " + proxy + "\n" +
+                "    [ \"$(settings get global http_proxy)\" = \"" + proxy + "\" ]\n" +
+                "}\n" +
+                "clear_proxy() {\n" +
+                "    settings put global http_proxy :0\n" +
+                "    [ \"$(settings get global http_proxy)\" != \"" + proxy + "\" ]\n" +
+                "}\n" +
+                "report_status() {\n" +
+                "    p=$(settings get global http_proxy)\n" +
+                "    x=$(pidof " + procName + ")\n" +
+                "    adb_u=$(settings get global adb_enabled)\n" +
+                "    adb_w=$(settings get global adb_wifi_enabled)\n" +
+                "    echo \"PROXY=$p\"\n" +
+                "    echo \"PID=$x\"\n" +
+                "    echo \"ADB_USB=$adb_u\"\n" +
+                "    echo \"ADB_WIFI=$adb_w\"\n" +
+                "    if [ \"$p\" = \"" + proxy + "\" ]; then\n" +
+                "        [ -n \"$x\" ] && echo \"STATE=ON\" || echo \"STATE=EXITED\"\n" +
+                "    else\n" +
+                "        echo \"STATE=OFF\"\n" +
+                "    fi\n" +
+                "}\n";
+    }
 
     private RootShell() {
         // Prevent instantiation
@@ -192,22 +131,95 @@ public final class RootShell {
     /**
      * Executes the click transaction for the TileService.
      */
-    public static Result toggle() {
-        return execute(TOGGLE_SCRIPT, TOGGLE_TIMEOUT_MS);
+    public static Result toggle(Context context) {
+        String functions = buildScriptFunctions(context);
+        String proxy = AppConfig.getHttpProxy(context);
+        String procName = AppConfig.getProcessName(context);
+
+        String script = functions +
+                "p=$(settings get global http_proxy)\n" +
+                "x=$(pidof " + procName + ")\n" +
+                "res=\"OK\"\n" +
+                "if [ \"$p\" = \"" + proxy + "\" ]; then\n" +
+                "    if [ -n \"$x\" ]; then\n" +
+                "        clear_proxy\n" +
+                "        if ! stop_xray; then\n" +
+                "            res=\"ERROR\"\n" +
+                "        fi\n" +
+                "    else\n" +
+                "        if start_xray; then\n" +
+                "            if ! set_proxy; then\n" +
+                "                stop_xray\n" +
+                "                res=\"ERROR\"\n" +
+                "            fi\n" +
+                "        else\n" +
+                "            clear_proxy\n" +
+                "            res=\"ERROR\"\n" +
+                "        fi\n" +
+                "    fi\n" +
+                "else\n" +
+                "    if [ -n \"$x\" ]; then\n" +
+                "        if stop_xray; then\n" +
+                "            if start_xray; then\n" +
+                "                if ! set_proxy; then\n" +
+                "                    stop_xray\n" +
+                "                    res=\"ERROR\"\n" +
+                "                fi\n" +
+                "            else\n" +
+                "                res=\"ERROR\"\n" +
+                "            fi\n" +
+                "        else\n" +
+                "            res=\"ERROR\"\n" +
+                "        fi\n" +
+                "    else\n" +
+                "        if start_xray; then\n" +
+                "            if ! set_proxy; then\n" +
+                "                stop_xray\n" +
+                "                res=\"ERROR\"\n" +
+                "            fi\n" +
+                "        else\n" +
+                "            res=\"ERROR\"\n" +
+                "        fi\n" +
+                "    fi\n" +
+                "fi\n" +
+                "fp=$(settings get global http_proxy)\n" +
+                "fx=$(pidof " + procName + ")\n" +
+                "if [ \"$fp\" = \"" + proxy + "\" ]; then\n" +
+                "    [ -n \"$fx\" ] && final_state=\"ON\" || final_state=\"EXITED\"\n" +
+                "else\n" +
+                "    final_state=\"OFF\"\n" +
+                "fi\n" +
+                "echo \"RESULT=$res\"\n" +
+                "echo \"STATE=$final_state\"\n";
+
+        return execute(script, TOGGLE_TIMEOUT_MS);
     }
 
     /**
      * Queries the actual current state for the TileService.
      */
-    public static Result queryState() {
-        return execute(QUERY_SCRIPT, QUERY_TIMEOUT_MS);
+    public static Result queryState(Context context) {
+        String proxy = AppConfig.getHttpProxy(context);
+        String procName = AppConfig.getProcessName(context);
+
+        String script =
+                "p=$(settings get global http_proxy)\n" +
+                "x=$(pidof " + procName + ")\n" +
+                "if [ \"$p\" = \"" + proxy + "\" ]; then\n" +
+                "    [ -n \"$x\" ] && echo \"STATE=ON\" || echo \"STATE=EXITED\"\n" +
+                "else\n" +
+                "    echo \"STATE=OFF\"\n" +
+                "fi\n" +
+                "echo \"RESULT=OK\"\n";
+
+        return execute(script, QUERY_TIMEOUT_MS);
     }
 
     /**
      * Starts Xray and enables global HTTP proxy.
      */
-    public static DetailedStatus startService() {
-        String script = SCRIPT_FUNCTIONS +
+    public static DetailedStatus startService(Context context) {
+        String script = buildScriptFunctions(context) +
                 "stop_xray\n" +
                 "if start_xray; then\n" +
                 "    set_proxy\n" +
@@ -223,8 +235,8 @@ public final class RootShell {
     /**
      * Clears HTTP proxy and stops Xray.
      */
-    public static DetailedStatus stopService() {
-        String script = SCRIPT_FUNCTIONS +
+    public static DetailedStatus stopService(Context context) {
+        String script = buildScriptFunctions(context) +
                 "clear_proxy\n" +
                 "if stop_xray; then\n" +
                 "    echo \"RESULT=OK\"\n" +
@@ -238,8 +250,8 @@ public final class RootShell {
     /**
      * Restarts Xray and enables global HTTP proxy.
      */
-    public static DetailedStatus restartService() {
-        String script = SCRIPT_FUNCTIONS +
+    public static DetailedStatus restartService(Context context) {
+        String script = buildScriptFunctions(context) +
                 "stop_xray\n" +
                 "if start_xray; then\n" +
                 "    set_proxy\n" +
@@ -255,8 +267,8 @@ public final class RootShell {
     /**
      * Disables USB debugging and Wireless debugging.
      */
-    public static DetailedStatus disableDebugging() {
-        String script = SCRIPT_FUNCTIONS +
+    public static DetailedStatus disableDebugging(Context context) {
+        String script = buildScriptFunctions(context) +
                 "settings put global adb_enabled 0\n" +
                 "settings put global adb_wifi_enabled 0\n" +
                 "echo \"RESULT=OK\"\n" +
@@ -267,8 +279,8 @@ public final class RootShell {
     /**
      * Queries detailed status of proxy, PID, and ADB status.
      */
-    public static DetailedStatus queryDetailedStatus() {
-        String script = SCRIPT_FUNCTIONS + "report_status\necho \"RESULT=OK\"\n";
+    public static DetailedStatus queryDetailedStatus(Context context) {
+        String script = buildScriptFunctions(context) + "report_status\necho \"RESULT=OK\"\n";
         return executeDetailed(script, QUERY_TIMEOUT_MS);
     }
 

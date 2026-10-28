@@ -47,7 +47,7 @@ public class XrayTileService extends TileService {
             if (busy.compareAndSet(false, true)) {
                 new Thread(() -> {
                     try {
-                        RootShell.Result result = RootShell.queryState();
+                        RootShell.Result result = RootShell.queryState(XrayTileService.this);
                         applyTileState(result);
                     } catch (Exception e) {
                         applyTileState(new RootShell.Result(RootShell.ActionResult.ERROR, RootShell.State.ERROR));
@@ -96,7 +96,7 @@ public class XrayTileService extends TileService {
 
         new Thread(() -> {
             try {
-                RootShell.Result result = RootShell.toggle();
+                RootShell.Result result = RootShell.toggle(XrayTileService.this);
                 applyTileState(result);
             } catch (Exception e) {
                 applyTileState(new RootShell.Result(RootShell.ActionResult.ERROR, RootShell.State.ERROR));
