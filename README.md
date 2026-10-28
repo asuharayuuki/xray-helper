@@ -1,32 +1,33 @@
 # Xray Helper
 
-A lightweight, high-performance Android utility app tailored for rooted Android devices (Android 14+ / Android 17). Designed following authentic **Material You / System Settings** design principles, with zero background battery consumption.
+A lightweight, high-performance Android utility app tailored for rooted Android devices (Android 14+ / Android 17). Designed with a modern, elegant **Xiaomi HyperOS / MIUI Design System** using [compose-miuix-ui/miuix](https://github.com/compose-miuix-ui/miuix) for Jetpack Compose, featuring zero background battery consumption.
 
 ---
 
 ## ✨ Features
 
-### 1. Authentic Android System Settings Style
-- **Collapsible Large Header**: Native `CollapsingToolbarLayout` headline (`Xray`) that expands on pull-down and smoothly transitions into the top app bar upon scrolling.
-- **Flat Borderless Surface Cards**: Surface container cards with zero border stroke and zero elevation (`strokeWidth="0dp"`, `cardElevation="0dp"`, `cardCornerRadius="24dp"`), relying entirely on system dynamic theme contrast.
-- **Standard Title Case Headers**: Clean category labels (`Proxy`, `Actions`, etc.) styled as system preference subheadings.
-- **Dual Launch Entry**: Launch directly from the home screen launcher icon or via long-pressing the Quick Settings tile.
+### 1. Modern Miuix / HyperOS Compose UI
+- **Powered by Miuix**: Built with [compose-miuix-ui/miuix](https://github.com/compose-miuix-ui/miuix), bringing Xiaomi HyperOS's sleek design language to Android.
+- **Large Collapsing TopAppBar**: Smooth inertial scrolling with `MiuixScrollBehavior`, dynamically collapsing from a large prominent title to a compact top bar.
+- **Continuous Curvature Squircle Cards**: Grouped preference items enclosed within Miuix squircle `Card` containers with adaptive surface elevation and system dark mode integration.
+- **Native Miuix Preference Components**: Smooth toggle controls (`SwitchPreference`), interactive action preferences (`ArrowPreference`), and single-choice selectors (`RadioButtonPreference`).
+- **Dual Launch Entry**: Launch directly from the desktop launcher icon or via long-pressing the Quick Settings tile.
 
 ### 2. Fully Customizable Dashboard
 - **Dynamic Sections**: Organize switches and buttons into custom sections (`Proxy`, `Actions`, `Developer`, `Network`, etc.).
 - **Switches & Action Buttons**:
   - **Toggle Switch**: Define independent `Trigger / On` and `Off` commands, with a custom `State Check` command (exit code 0 = Active).
   - **Action Button**: One-tap execution of root commands with output notifications via system Toasts.
-- **Dynamic Command Output Summaries**: Subtitle descriptions dynamically fetch stdout from commands (e.g. status or output). When output is empty or whitespace, description views automatically hide (`View.GONE`).
+- **Dynamic Command Output Summaries**: Subtitle descriptions dynamically fetch stdout from commands (e.g. status or output). When output is empty or whitespace, description views automatically hide.
 - **Exit Code Disable Conditions**: Automatically disable and dim any button or switch when a specified verification command evaluates to true (exit code 0).
-- **Official Google Material Design Icons**: Integrated visual grid icon picker with 40+ official icons fetched directly from [google/material-design-icons](https://github.com/google/material-design-icons) (`shield`, `terminal`, `dns`, `globe`, `router`, `speed`, `fingerprint`, `code`, `storage`, `tune`, and more).
+- **Official Google Material Icons**: Integrated visual grid icon picker with 40+ official icons from [google/material-design-icons](https://github.com/google/material-design-icons) (`shield`, `terminal`, `dns`, `globe`, `router`, `speed`, `fingerprint`, `code`, `storage`, `tune`, and more).
 
 ### 3. Dedicated Full-Page Item Editor (`EditItemActivity`)
 - Completely eliminates cramped multi-layer dialogs and box-in-box nesting.
-- **Spacious Command Inputs**: All command text fields support multi-line scripts with **unlimited vertical height** (no maxLines restrictions).
+- **Spacious Command Inputs**: All command text fields support multi-line scripts with **unlimited vertical height** (no restrictive line limits).
 - **Core Integration**: Direct access to Core start/stop commands and process name without redundant proxy settings.
-- **Visual Icon Picker Dialog**: Instant 4-column `RecyclerView` grid selector with clear English labels and selection highlights.
-- **Save & Delete**: Save via the top-right Material checkmark icon (`ic_check`), with dedicated destructive actions for custom items.
+- **Visual Icon Picker Dialog**: Instant 4-column `WindowDialog` grid selector with clear English labels and selection highlights.
+- **Save & Delete**: Save via the top-right checkmark icon (`MiuixIcons.Ok`), with dedicated destructive actions for custom items.
 
 ### 4. Smart Core State Synchronization
 - **Four Distinct Operational States**:
@@ -35,7 +36,7 @@ A lightweight, high-performance Android utility app tailored for rooted Android 
   3. `Stopped, proxy active` — Global HTTP proxy configured without active core process.
   4. `Stopped, proxy disabled` — Completely stopped and disconnected.
 - **No PID Pollution**: Standard comma formatting for clean system status reporting.
-- **Active QS Tile**: Bidirectional instant synchronization with the `XrayTileService`.
+- **Active QS Tile**: Bidirectional instant synchronization with `XrayTileService`.
 
 ### 5. Auxiliary Quick Settings Tiles
 - **Caffeine Tile**:
@@ -55,7 +56,8 @@ A lightweight, high-performance Android utility app tailored for rooted Android 
 - **compileSdk**: 37 (Android 17)
 - **minSdk**: 24 (Android 7.0+)
 - **targetSdk**: 37
-- **Java Version**: Java 17+
+- **Kotlin**: 2.0.21 / 2.4+ Compose Compiler
+- **UI Library**: `top.yukonga.miuix.kmp:miuix-ui-android:0.9.4`
 - **Root Solution**: Compatible with KernelSU, APatch, and Magisk.
 
 ### Build Release APK

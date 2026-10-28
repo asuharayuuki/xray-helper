@@ -1,5 +1,6 @@
 plugins {
     id("com.android.application")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 android {
@@ -8,10 +9,14 @@ android {
 
     defaultConfig {
         applicationId = "org.eu.suisei.xray"
-        minSdk = 37
+        minSdk = 24
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
+    }
+
+    buildFeatures {
+        compose = true
     }
 
     compileOptions {
@@ -27,6 +32,15 @@ android {
     }
 }
 
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    compilerOptions {
+        freeCompilerArgs.add("-Xskip-metadata-version-check")
+    }
+}
+
 dependencies {
-    implementation("com.google.android.material:material:1.14.0")
+    implementation("androidx.activity:activity-compose:1.10.1")
+    implementation("top.yukonga.miuix.kmp:miuix-ui-android:0.9.4")
+    implementation("top.yukonga.miuix.kmp:miuix-preference-android:0.9.4")
+    implementation("top.yukonga.miuix.kmp:miuix-icons-android:0.9.4")
 }
