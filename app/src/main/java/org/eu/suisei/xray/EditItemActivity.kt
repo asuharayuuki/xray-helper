@@ -3,15 +3,17 @@ package org.eu.suisei.xray
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,7 +33,6 @@ import top.yukonga.miuix.kmp.icon.extended.Ok
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.RadioButtonPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.window.WindowDialog
 import java.util.UUID
 
 class EditItemActivity : ComponentActivity() {
@@ -173,7 +174,6 @@ fun EditItemScreen(
     onSave: (DashboardItem, String) -> Unit,
     onDelete: (DashboardItem) -> Unit
 ) {
-    val scrollBehavior = MiuixScrollBehavior()
     val isCore = initialItem?.isCore == true
     val isEditing = initialItem != null
 
@@ -211,8 +211,123 @@ fun EditItemScreen(
     var summaryCmd by remember { mutableStateOf(initialItem?.summaryCommand ?: "") }
     var disableConditionCmd by remember { mutableStateOf(initialItem?.disableConditionCommand ?: "") }
 
-    var showIconPicker by remember { mutableStateOf(false) }
-    var showDeleteDialog by remember { mutableStateOf(false) }
+    var isSelectingIcon by remember { mutableStateOf(false) }
+
+    // Intercept back gesture when icon subpage is open
+    BackHandler(enabled = isSelectingIcon) {
+        isSelectingIcon = false
+    }
+
+    AnimatedContent(
+        targetState = isSelectingIcon,
+        transitionSpec = {
+            if (targetState) {
+                (slideInHorizontally { it } + fadeIn()).togetherWith(
+                    slideOutHorizontally { -it / 3 } + fadeOut()
+                )
+            } else {
+                (slideInHorizontally { -it / 3 } + fadeIn()).togetherWith(
+                    slideOutHorizontally { it } + fadeOut()
+                )
+            }
+        },
+        label = "IconPickerPageTransition"
+    ) { pickingIcon ->
+        if (pickingIcon) {
+            IconPickerSubScreen(
+                currentIcon = selectedIcon,
+                onSelectIcon = { newIcon ->
+                    selectedIcon = newIcon
+                    isSelectingIcon = false
+                },
+                onBack = { isSelectingIcon = false }
+            )
+        } else {
+            EditItemMainContent(
+                pageTitle = pageTitle,
+                isCore = isCore,
+                isEditing = isEditing,
+                title = title,
+                onTitleChange = { title = it },
+                sectionTitle = sectionTitle,
+                onSectionTitleChange = { sectionTitle = it },
+                isSwitch = isSwitch,
+                onSwitchChange = { isSwitch = it },
+                selectedIcon = selectedIcon,
+                onOpenIconPicker = { isSelectingIcon = true },
+                onCmd = onCmd,
+                onCmdChange = { onCmd = it },
+                offCmd = offCmd,
+                offCmdChange = { offCmd = it },
+                processName = processName,
+                onProcessNameChange = { processName = it },
+                stateCheckCmd = stateCheckCmd,
+                onStateCheckCmdChange = { stateCheckCmd = it },
+                summaryCmd = summaryCmd,
+                onSummaryCmdChange = { summaryCmd = it },
+                disableConditionCmd = disableConditionCmd,
+                onDisableConditionCmdChange = { disableConditionCmd = it },
+                onBack = onBack,
+                onSave = {
+                    val id = initialItem?.id ?: UUID.randomUUID().toString()
+                    val type = if (isCore || isSwitch) DashboardItem.TYPE_SWITCH else DashboardItem.TYPE_BUTTON
+                    val savedItem = DashboardItem(
+                        id,
+                        title.trim(),
+                        type,
+                        selectedIcon,
+                        onCmd.trim(),
+                        offCmd.trim(),
+                        if (isCore) processName.trim() else stateCheckCmd.trim(),
+                        summaryCmd.trim(),
+                        disableConditionCmd.trim(),
+                        isCore
+                    )
+                    onSave(savedItem, sectionTitle.trim())
+                },
+                onDelete = {
+                    if (initialItem != null) {
+                        onDelete(initialItem)
+                    }
+                },
+                deleteItemTitle = initialItem?.title
+            )
+        }
+    }
+}
+
+@Composable
+fun EditItemMainContent(
+    pageTitle: String,
+    isCore: Boolean,
+    isEditing: Boolean,
+    title: String,
+    onTitleChange: (String) -> Unit,
+    sectionTitle: String,
+    onSectionTitleChange: (String) -> Unit,
+    isSwitch: Boolean,
+    onSwitchChange: (Boolean) -> Unit,
+    selectedIcon: String,
+    onOpenIconPicker: () -> Unit,
+    onCmd: String,
+    onCmdChange: (String) -> Unit,
+    offCmd: String,
+    offCmdChange: (String) -> Unit,
+    processName: String,
+    onProcessNameChange: (String) -> Unit,
+    stateCheckCmd: String,
+    onStateCheckCmdChange: (String) -> Unit,
+    summaryCmd: String,
+    onSummaryCmdChange: (String) -> Unit,
+    disableConditionCmd: String,
+    onDisableConditionCmdChange: (String) -> Unit,
+    onBack: () -> Unit,
+    onSave: () -> Unit,
+    onDelete: () -> Unit,
+    deleteItemTitle: String?
+) {
+    val scrollBehavior = MiuixScrollBehavior()
+    var showDeleteConfirm by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -227,25 +342,7 @@ fun EditItemScreen(
                     }
                 },
                 actions = {
-                    IconButton(
-                        onClick = {
-                            val id = initialItem?.id ?: UUID.randomUUID().toString()
-                            val type = if (isCore || isSwitch) DashboardItem.TYPE_SWITCH else DashboardItem.TYPE_BUTTON
-                            val savedItem = DashboardItem(
-                                id,
-                                title.trim(),
-                                type,
-                                selectedIcon,
-                                onCmd.trim(),
-                                offCmd.trim(),
-                                if (isCore) processName.trim() else stateCheckCmd.trim(),
-                                summaryCmd.trim(),
-                                disableConditionCmd.trim(),
-                                isCore
-                            )
-                            onSave(savedItem, sectionTitle.trim())
-                        }
-                    ) {
+                    IconButton(onClick = onSave) {
                         Icon(MiuixIcons.Ok, contentDescription = "Save")
                     }
                 }
@@ -272,14 +369,14 @@ fun EditItemScreen(
                     Column(modifier = Modifier.padding(16.dp)) {
                         TextField(
                             value = title,
-                            onValueChange = { title = it },
+                            onValueChange = onTitleChange,
                             label = "Title",
                             modifier = Modifier.fillMaxWidth()
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         TextField(
                             value = sectionTitle,
-                            onValueChange = { sectionTitle = it },
+                            onValueChange = onSectionTitleChange,
                             label = "Section name",
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -290,12 +387,12 @@ fun EditItemScreen(
                         RadioButtonPreference(
                             title = "Switch",
                             selected = isSwitch,
-                            onClick = { isSwitch = true }
+                            onClick = { onSwitchChange(true) }
                         )
                         RadioButtonPreference(
                             title = "Action Button",
                             selected = !isSwitch,
-                            onClick = { isSwitch = false }
+                            onClick = { onSwitchChange(false) }
                         )
                     }
                 }
@@ -321,7 +418,7 @@ fun EditItemScreen(
                                 contentDescription = null
                             )
                         },
-                        onClick = { showIconPicker = true }
+                        onClick = onOpenIconPicker
                     )
                 }
             }
@@ -341,7 +438,7 @@ fun EditItemScreen(
                         if (isCore) {
                             TextField(
                                 value = onCmd,
-                                onValueChange = { onCmd = it },
+                                onValueChange = onCmdChange,
                                 label = "Start command",
                                 singleLine = false,
                                 modifier = Modifier.fillMaxWidth()
@@ -349,7 +446,7 @@ fun EditItemScreen(
                             Spacer(modifier = Modifier.height(12.dp))
                             TextField(
                                 value = offCmd,
-                                onValueChange = { offCmd = it },
+                                onValueChange = offCmdChange,
                                 label = "Stop command",
                                 singleLine = false,
                                 modifier = Modifier.fillMaxWidth()
@@ -357,7 +454,7 @@ fun EditItemScreen(
                             Spacer(modifier = Modifier.height(12.dp))
                             TextField(
                                 value = processName,
-                                onValueChange = { processName = it },
+                                onValueChange = onProcessNameChange,
                                 label = "Process name (Default: xray)",
                                 modifier = Modifier.fillMaxWidth()
                             )
@@ -365,7 +462,7 @@ fun EditItemScreen(
                             if (isSwitch) {
                                 TextField(
                                     value = onCmd,
-                                    onValueChange = { onCmd = it },
+                                    onValueChange = onCmdChange,
                                     label = "On command",
                                     singleLine = false,
                                     modifier = Modifier.fillMaxWidth()
@@ -373,7 +470,7 @@ fun EditItemScreen(
                                 Spacer(modifier = Modifier.height(12.dp))
                                 TextField(
                                     value = offCmd,
-                                    onValueChange = { offCmd = it },
+                                    onValueChange = offCmdChange,
                                     label = "Off command",
                                     singleLine = false,
                                     modifier = Modifier.fillMaxWidth()
@@ -381,7 +478,7 @@ fun EditItemScreen(
                                 Spacer(modifier = Modifier.height(12.dp))
                                 TextField(
                                     value = stateCheckCmd,
-                                    onValueChange = { stateCheckCmd = it },
+                                    onValueChange = onStateCheckCmdChange,
                                     label = "State check command (Exit code 0 = Checked)",
                                     singleLine = false,
                                     modifier = Modifier.fillMaxWidth()
@@ -389,7 +486,7 @@ fun EditItemScreen(
                             } else {
                                 TextField(
                                     value = onCmd,
-                                    onValueChange = { onCmd = it },
+                                    onValueChange = onCmdChange,
                                     label = "Action command",
                                     singleLine = false,
                                     modifier = Modifier.fillMaxWidth()
@@ -399,7 +496,7 @@ fun EditItemScreen(
                             Spacer(modifier = Modifier.height(12.dp))
                             TextField(
                                 value = summaryCmd,
-                                onValueChange = { summaryCmd = it },
+                                onValueChange = onSummaryCmdChange,
                                 label = "Dynamic summary command (Output = Subtitle)",
                                 singleLine = false,
                                 modifier = Modifier.fillMaxWidth()
@@ -407,7 +504,7 @@ fun EditItemScreen(
                             Spacer(modifier = Modifier.height(12.dp))
                             TextField(
                                 value = disableConditionCmd,
-                                onValueChange = { disableConditionCmd = it },
+                                onValueChange = onDisableConditionCmdChange,
                                 label = "Disable condition command (Exit code 0 = Disabled)",
                                 singleLine = false,
                                 modifier = Modifier.fillMaxWidth()
@@ -429,129 +526,253 @@ fun EditItemScreen(
                             .padding(horizontal = 12.dp)
                             .padding(bottom = 12.dp)
                     ) {
+                        if (!showDeleteConfirm) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                TextButton(
+                                    text = "Delete item",
+                                    onClick = { showDeleteConfirm = true }
+                                )
+                            }
+                        } else {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "Are you sure you want to delete '${deleteItemTitle ?: "this item"}'?",
+                                    fontSize = 14.sp,
+                                    color = MiuixTheme.colorScheme.onSurfaceSecondary,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(14.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    TextButton(
+                                        text = stringResource(R.string.btn_cancel),
+                                        onClick = { showDeleteConfirm = false }
+                                    )
+                                    Button(
+                                        onClick = {
+                                            showDeleteConfirm = false
+                                            onDelete()
+                                        }
+                                    ) {
+                                        Text(stringResource(R.string.btn_delete))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun IconPickerSubScreen(
+    currentIcon: String,
+    onSelectIcon: (String) -> Unit,
+    onBack: () -> Unit
+) {
+    val scrollBehavior = MiuixScrollBehavior()
+    var searchQuery by remember { mutableStateOf("") }
+
+    val filteredIcons = remember(searchQuery) {
+        val q = searchQuery.trim().lowercase()
+        if (q.isEmpty()) {
+            IconHelper.AVAILABLE_ICONS.toList()
+        } else {
+            IconHelper.AVAILABLE_ICONS.filter { name ->
+                name.lowercase().contains(q) || formatIconName(name).lowercase().contains(q)
+            }
+        }
+    }
+
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = {
+            TopAppBar(
+                title = "Select icon",
+                largeTitle = "Select icon",
+                scrollBehavior = scrollBehavior,
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(MiuixIcons.Back, contentDescription = "Back")
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+            contentPadding = PaddingValues(bottom = 48.dp)
+        ) {
+            // Search Input
+            item(key = "search_header") {
+                SmallTitle(text = "Search")
+            }
+            item(key = "search_card") {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp)
+                        .padding(bottom = 12.dp)
+                ) {
+                    Box(modifier = Modifier.padding(16.dp)) {
+                        TextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            label = "Search icons (e.g. shield, wifi, code)",
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            }
+
+            // Current Selection Preview
+            item(key = "current_header") {
+                SmallTitle(text = "Current Selection")
+            }
+            item(key = "current_card") {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp)
+                        .padding(bottom = 12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
+                                .size(48.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MiuixTheme.colorScheme.primaryContainer),
                             contentAlignment = Alignment.Center
                         ) {
-                            TextButton(
-                                text = "Delete item",
-                                onClick = { showDeleteDialog = true }
+                            Icon(
+                                painter = painterResource(IconHelper.getDrawableRes(currentIcon)),
+                                contentDescription = currentIcon,
+                                modifier = Modifier.size(28.dp),
+                                tint = MiuixTheme.colorScheme.primary
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column {
+                            Text(
+                                text = formatIconName(currentIcon),
+                                fontSize = 16.sp,
+                                color = MiuixTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Currently active icon",
+                                fontSize = 13.sp,
+                                color = MiuixTheme.colorScheme.onSurfaceSecondary
                             )
                         }
                     }
                 }
             }
-        }
-    }
 
-    // Icon Picker WindowDialog
-    if (showIconPicker) {
-        WindowDialog(
-            show = showIconPicker,
-            onDismissRequest = { showIconPicker = false },
-            title = "Select icon"
-        ) {
-            val iconRows = remember { IconHelper.AVAILABLE_ICONS.toList().chunked(4) }
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 340.dp)
-                    .verticalScroll(rememberScrollState())
-                    .padding(vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                iconRows.forEach { rowIcons ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+            // Grid of Icons
+            item(key = "icons_header") {
+                SmallTitle(text = "All Icons (${filteredIcons.size})")
+            }
+            item(key = "icons_card") {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp)
+                        .padding(bottom = 12.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        rowIcons.forEach { iconName ->
-                            val isSelected = iconName.equals(selectedIcon, ignoreCase = true)
-                            val bg = if (isSelected) MiuixTheme.colorScheme.primaryContainer else MiuixTheme.colorScheme.surfaceContainer
-
+                        val iconRows = remember(filteredIcons) { filteredIcons.chunked(4) }
+                        if (iconRows.isEmpty()) {
                             Box(
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(bg)
-                                    .clickable {
-                                        selectedIcon = iconName
-                                        showIconPicker = false
-                                    }
-                                    .padding(vertical = 8.dp, horizontal = 4.dp),
+                                    .fillMaxWidth()
+                                    .padding(vertical = 24.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally
+                                Text(
+                                    text = "No icons found",
+                                    fontSize = 14.sp,
+                                    color = MiuixTheme.colorScheme.onSurfaceSecondary
+                                )
+                            }
+                        } else {
+                            iconRows.forEach { rowIcons ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Icon(
-                                        painter = painterResource(IconHelper.getDrawableRes(iconName)),
-                                        contentDescription = iconName,
-                                        modifier = Modifier.size(26.dp),
-                                        tint = if (isSelected) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.onSurface
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = formatIconName(iconName),
-                                        fontSize = 11.sp,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        textAlign = TextAlign.Center
-                                    )
+                                    rowIcons.forEach { iconName ->
+                                        val isSelected = iconName.equals(currentIcon, ignoreCase = true)
+                                        val bg = if (isSelected) MiuixTheme.colorScheme.primaryContainer else MiuixTheme.colorScheme.surfaceContainer
+                                        val border = if (isSelected) BorderStroke(1.5.dp, MiuixTheme.colorScheme.primary) else null
+
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .then(if (border != null) Modifier.border(border, RoundedCornerShape(12.dp)) else Modifier)
+                                                .background(bg)
+                                                .clickable {
+                                                    onSelectIcon(iconName)
+                                                }
+                                                .padding(vertical = 12.dp, horizontal = 4.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Column(
+                                                horizontalAlignment = Alignment.CenterHorizontally
+                                            ) {
+                                                Icon(
+                                                    painter = painterResource(IconHelper.getDrawableRes(iconName)),
+                                                    contentDescription = iconName,
+                                                    modifier = Modifier.size(28.dp),
+                                                    tint = if (isSelected) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.onSurface
+                                                )
+                                                Spacer(modifier = Modifier.height(6.dp))
+                                                Text(
+                                                    text = formatIconName(iconName),
+                                                    fontSize = 11.sp,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                    textAlign = TextAlign.Center,
+                                                    color = if (isSelected) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.onSurface
+                                                )
+                                            }
+                                        }
+                                    }
+                                    repeat(4 - rowIcons.size) {
+                                        Spacer(modifier = Modifier.weight(1f))
+                                    }
                                 }
                             }
                         }
-                        repeat(4 - rowIcons.size) {
-                            Spacer(modifier = Modifier.weight(1f))
-                        }
                     }
-                }
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 12.dp),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                TextButton(
-                    text = stringResource(R.string.btn_cancel),
-                    onClick = { showIconPicker = false }
-                )
-            }
-        }
-    }
-
-    // Delete Confirmation WindowDialog
-    if (showDeleteDialog && initialItem != null) {
-        WindowDialog(
-            show = showDeleteDialog,
-            onDismissRequest = { showDeleteDialog = false },
-            title = "Delete item",
-            summary = "Are you sure you want to delete '${initialItem.title}'?"
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                TextButton(
-                    text = stringResource(R.string.btn_cancel),
-                    onClick = { showDeleteDialog = false }
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Button(
-                    onClick = {
-                        showDeleteDialog = false
-                        onDelete(initialItem)
-                    }
-                ) {
-                    Text(stringResource(R.string.btn_delete))
                 }
             }
         }

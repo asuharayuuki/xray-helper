@@ -15,13 +15,14 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import org.eu.suisei.xray.ui.MiuixAppTheme
 import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Add
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.preference.ArrowPreference
-import top.yukonga.miuix.kmp.window.WindowDialog
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 class SettingsActivity : ComponentActivity() {
 
@@ -74,7 +75,7 @@ fun SettingsScreen(
     onResetDefaults: () -> Unit
 ) {
     val scrollBehavior = MiuixScrollBehavior()
-    var showResetDialog by remember { mutableStateOf(false) }
+    var showResetConfirm by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -154,42 +155,44 @@ fun SettingsScreen(
                         .padding(horizontal = 12.dp)
                         .padding(bottom = 12.dp)
                 ) {
-                    ArrowPreference(
-                        title = stringResource(R.string.btn_reset_defaults),
-                        summary = "Restore default commands and dashboard layout",
-                        onClick = { showResetDialog = true }
-                    )
-                }
-            }
-        }
-    }
-
-    if (showResetDialog) {
-        WindowDialog(
-            show = showResetDialog,
-            onDismissRequest = { showResetDialog = false },
-            title = stringResource(R.string.btn_reset_defaults),
-            summary = "Reset all Xray commands and dashboard layout to defaults?"
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                TextButton(
-                    text = stringResource(R.string.btn_cancel),
-                    onClick = { showResetDialog = false }
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Button(
-                    onClick = {
-                        showResetDialog = false
-                        onResetDefaults()
+                    if (!showResetConfirm) {
+                        ArrowPreference(
+                            title = stringResource(R.string.btn_reset_defaults),
+                            summary = "Restore default commands and dashboard layout",
+                            onClick = { showResetConfirm = true }
+                        )
+                    } else {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                        ) {
+                            Text(
+                                text = "Reset all Xray commands and dashboard layout to defaults?",
+                                fontSize = 14.sp,
+                                color = MiuixTheme.colorScheme.onSurfaceSecondary
+                            )
+                            Spacer(modifier = Modifier.height(14.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                TextButton(
+                                    text = stringResource(R.string.btn_cancel),
+                                    onClick = { showResetConfirm = false }
+                                )
+                                Button(
+                                    onClick = {
+                                        showResetConfirm = false
+                                        onResetDefaults()
+                                    }
+                                ) {
+                                    Text("Reset")
+                                }
+                            }
+                        }
                     }
-                ) {
-                    Text("Reset")
                 }
             }
         }
