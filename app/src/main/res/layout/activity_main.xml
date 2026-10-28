@@ -65,101 +65,102 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="20dp">
+                    android:padding="24dp">
 
-                    <!-- Status Indicator & PID Row -->
+                    <!-- Status Indicator & PID Row (Exact identical 32dp height) -->
                     <LinearLayout
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
+                        android:layout_height="32dp"
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
-                        android:layout_marginBottom="20dp">
+                        android:layout_marginBottom="24dp">
 
                         <TextView
                             android:id="@+id/text_badge_state"
                             android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="OFF"
-                            android:textStyle="bold"
+                            android:layout_height="32dp"
+                            android:minWidth="68dp"
+                            android:gravity="center"
                             android:paddingStart="16dp"
                             android:paddingEnd="16dp"
-                            android:paddingTop="6dp"
-                            android:paddingBottom="6dp"
+                            android:text="OFF"
+                            android:textStyle="bold"
+                            android:includeFontPadding="false"
                             android:background="@drawable/bg_badge"
                             android:textColor="@android:color/white"
-                            android:textAppearance="?attr/textAppearanceTitleMedium" />
+                            android:textAppearance="?attr/textAppearanceLabelLarge" />
 
                         <View
                             android:layout_width="0dp"
                             android:layout_height="1dp"
                             android:layout_weight="1" />
 
-                        <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/card_pid"
+                        <TextView
+                            android:id="@+id/text_pid"
                             android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
+                            android:layout_height="32dp"
+                            android:gravity="center"
+                            android:paddingStart="14dp"
+                            android:paddingEnd="14dp"
+                            android:text="PID: —"
                             android:visibility="gone"
-                            app:cardCornerRadius="100dp"
-                            app:cardElevation="0dp"
-                            app:strokeWidth="1dp"
-                            app:strokeColor="?attr/colorOutlineVariant"
-                            app:cardBackgroundColor="?attr/colorSurfaceContainerHigh">
-
-                            <TextView
-                                android:id="@+id/text_pid"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="PID: —"
-                                android:paddingStart="12dp"
-                                android:paddingEnd="12dp"
-                                android:paddingTop="5dp"
-                                android:paddingBottom="5dp"
-                                android:textAppearance="?attr/textAppearanceLabelLarge"
-                                android:textColor="?attr/colorOnSurfaceVariant" />
-
-                        </com.google.android.material.card.MaterialCardView>
+                            android:textStyle="bold"
+                            android:includeFontPadding="false"
+                            android:background="@drawable/bg_pid_badge"
+                            android:textAppearance="?attr/textAppearanceLabelLarge"
+                            android:textColor="?attr/colorOnSurfaceVariant" />
 
                     </LinearLayout>
 
-                    <!-- Primary Action Buttons Row -->
+                    <!-- Icon-Only Control Buttons Row (Start, Stop, Restart) -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal">
+                        android:orientation="horizontal"
+                        android:gravity="center">
 
+                        <!-- Start Button -->
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_start"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:layout_marginEnd="4dp"
-                            android:text="@string/btn_start"
+                            android:layout_width="56dp"
+                            android:layout_height="56dp"
+                            android:layout_marginEnd="16dp"
+                            android:padding="0dp"
                             app:icon="@drawable/ic_play"
-                            app:cornerRadius="16dp"
-                            style="@style/Widget.Material3.Button" />
+                            app:iconSize="28dp"
+                            app:iconGravity="textStart"
+                            app:cornerRadius="28dp"
+                            android:contentDescription="@string/btn_start"
+                            style="@style/Widget.Material3.Button.IconButton.Filled" />
 
+                        <!-- Stop Button -->
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_stop"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:layout_marginStart="4dp"
-                            android:layout_marginEnd="4dp"
-                            android:text="@string/btn_stop"
+                            android:layout_width="56dp"
+                            android:layout_height="56dp"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginEnd="8dp"
+                            android:padding="0dp"
                             app:icon="@drawable/ic_stop"
-                            app:cornerRadius="16dp"
-                            style="@style/Widget.Material3.Button.TonalButton" />
+                            app:iconSize="28dp"
+                            app:iconGravity="textStart"
+                            app:cornerRadius="28dp"
+                            android:contentDescription="@string/btn_stop"
+                            style="@style/Widget.Material3.Button.IconButton.Filled.Tonal" />
 
+                        <!-- Restart Button -->
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_restart"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:layout_marginStart="4dp"
-                            android:text="@string/btn_restart"
+                            android:layout_width="56dp"
+                            android:layout_height="56dp"
+                            android:layout_marginStart="16dp"
+                            android:padding="0dp"
                             app:icon="@drawable/ic_refresh"
-                            app:cornerRadius="16dp"
-                            style="@style/Widget.Material3.Button.OutlinedButton" />
+                            app:iconSize="28dp"
+                            app:iconGravity="textStart"
+                            app:cornerRadius="28dp"
+                            android:contentDescription="@string/btn_restart"
+                            style="@style/Widget.Material3.Button.IconButton.Outlined" />
 
                     </LinearLayout>
 
@@ -167,7 +168,7 @@
 
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Custom Script Buttons Container (Direct buttons, no text headers) -->
+            <!-- Custom Action Buttons Container -->
             <LinearLayout
                 android:id="@+id/container_custom_actions"
                 android:layout_width="match_parent"

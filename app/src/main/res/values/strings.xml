@@ -47,7 +47,9 @@
     <string name="dialog_title_add">Add Custom Button</string>
     <string name="dialog_title_edit">Edit Custom Button</string>
     <string name="hint_button_name">Button Name</string>
-    <string name="hint_button_command">Command (e.g. su -c \'uname -a\')</string>
+    <string name="hint_button_command">Action Command (e.g. su -c \'uname -a\')</string>
+    <string name="hint_button_condition">Disable Condition Command (Optional)</string>
+    <string name="helper_button_condition">Button is disabled when this command returns true (exit 0)</string>
     <string name="error_name_empty">Name cannot be empty</string>
     <string name="error_command_empty">Command cannot be empty</string>
     <string name="btn_save">Save</string>

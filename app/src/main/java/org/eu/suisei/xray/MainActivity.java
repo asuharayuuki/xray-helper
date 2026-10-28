@@ -26,7 +26,6 @@ import androidx.core.view.WindowInsetsControllerCompat;
 
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
-import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.progressindicator.LinearProgressIndicator;
 
 import java.io.BufferedReader;
@@ -47,7 +46,6 @@ public class MainActivity extends AppCompatActivity {
 
     private LinearProgressIndicator progressBar;
     private TextView textBadgeState;
-    private MaterialCardView cardPid;
     private TextView textPid;
     private MaterialButton btnStart;
     private MaterialButton btnStop;
@@ -151,7 +149,6 @@ public class MainActivity extends AppCompatActivity {
     private void initViews() {
         progressBar = findViewById(R.id.progress_bar);
         textBadgeState = findViewById(R.id.text_badge_state);
-        cardPid = findViewById(R.id.card_pid);
         textPid = findViewById(R.id.text_pid);
         btnStart = findViewById(R.id.btn_start);
         btnStop = findViewById(R.id.btn_stop);
@@ -167,6 +164,7 @@ public class MainActivity extends AppCompatActivity {
             int id = item.getItemId();
             if (id == R.id.action_refresh) {
                 loadStatus();
+                refreshCustomActionConditions();
                 return true;
             } else if (id == R.id.action_settings) {
                 startActivity(new Intent(this, SettingsActivity.class));
@@ -237,50 +235,47 @@ public class MainActivity extends AppCompatActivity {
     private void bindStatus(RootShell.DetailedStatus status) {
         if (!status.isRootGranted) {
             setBadge(getString(R.string.state_root_denied).toUpperCase(), Color.parseColor("#B00020"));
-            cardPid.setVisibility(View.GONE);
+            textPid.setVisibility(View.GONE);
         } else {
             switch (status.state) {
                 case ON:
                     setBadge(getString(R.string.state_on).toUpperCase(), Color.parseColor("#2E7D32"));
                     if (status.pid != null && !status.pid.isEmpty()) {
                         textPid.setText("PID: " + status.pid);
-                        cardPid.setVisibility(View.VISIBLE);
+                        textPid.setVisibility(View.VISIBLE);
                     } else {
-                        cardPid.setVisibility(View.GONE);
+                        textPid.setVisibility(View.GONE);
                     }
                     break;
                 case EXITED:
                     setBadge(getString(R.string.state_exited).toUpperCase(), Color.parseColor("#E65100"));
-                    cardPid.setVisibility(View.GONE);
+                    textPid.setVisibility(View.GONE);
                     break;
                 case OFF:
                     setBadge(getString(R.string.state_off).toUpperCase(), Color.parseColor("#616161"));
-                    cardPid.setVisibility(View.GONE);
+                    textPid.setVisibility(View.GONE);
                     break;
                 case ERROR:
                 default:
                     setBadge(getString(R.string.state_error).toUpperCase(), Color.parseColor("#C62828"));
-                    cardPid.setVisibility(View.GONE);
+                    textPid.setVisibility(View.GONE);
                     break;
             }
         }
+        refreshCustomActionConditions();
     }
 
     private void setBadge(String text, int color) {
         textBadgeState.setText(text);
-        if (textBadgeState.getBackground() instanceof GradientDrawable) {
-            ((GradientDrawable) textBadgeState.getBackground()).setColor(color);
-        } else {
-            GradientDrawable drawable = new GradientDrawable();
-            drawable.setShape(GradientDrawable.RECTANGLE);
-            drawable.setCornerRadius(100f);
-            drawable.setColor(color);
-            textBadgeState.setBackground(drawable);
-        }
+        GradientDrawable drawable = new GradientDrawable();
+        drawable.setShape(GradientDrawable.RECTANGLE);
+        drawable.setCornerRadius(16f * getResources().getDisplayMetrics().density);
+        drawable.setColor(color);
+        textBadgeState.setBackground(drawable);
     }
 
     // ==========================================
-    // Custom Buttons Execution
+    // Custom Buttons Execution & Condition Evaluation
     // ==========================================
 
     private void renderCustomActions() {
@@ -295,6 +290,57 @@ public class MainActivity extends AppCompatActivity {
                 btnAction.setOnClickListener(v -> executeCustomCommand(action.command));
                 containerCustomActions.addView(btnAction);
             }
+            refreshCustomActionConditions();
+        }
+    }
+
+    private void refreshCustomActionConditions() {
+        List<CustomAction> actions = CustomActionManager.load(this);
+        int count = containerCustomActions.getChildCount();
+        if (count != actions.size()) {
+            return;
+        }
+
+        new Thread(() -> {
+            for (int i = 0; i < actions.size(); i++) {
+                CustomAction action = actions.get(i);
+                final int index = i;
+                if (action.conditionCommand != null && !action.conditionCommand.trim().isEmpty()) {
+                    boolean isTrue = evaluateCondition(action.conditionCommand);
+                    // "当命令为真时，该框禁用" -> disabled when condition is true
+                    mainHandler.post(() -> {
+                        if (index < containerCustomActions.getChildCount()) {
+                            View child = containerCustomActions.getChildAt(index);
+                            if (child instanceof MaterialButton) {
+                                ((MaterialButton) child).setEnabled(!isTrue);
+                            }
+                        }
+                    });
+                }
+            }
+        }, "Condition-Checker").start();
+    }
+
+    private boolean evaluateCondition(String conditionCommand) {
+        if (conditionCommand == null || conditionCommand.trim().isEmpty()) {
+            return false;
+        }
+        Process process = null;
+        try {
+            process = new ProcessBuilder("/system/bin/sh", "-c", conditionCommand)
+                    .redirectErrorStream(true)
+                    .start();
+            boolean finished = process.waitFor(3, TimeUnit.SECONDS);
+            if (!finished) {
+                process.destroyForcibly();
+                return false;
+            }
+            return process.exitValue() == 0;
+        } catch (Exception e) {
+            if (process != null) {
+                process.destroyForcibly();
+            }
+            return false;
         }
     }
 
@@ -356,6 +402,9 @@ public class MainActivity extends AppCompatActivity {
                     final String displayErr = err.trim();
                     mainHandler.post(() -> Toast.makeText(MainActivity.this, displayErr, Toast.LENGTH_LONG).show());
                 }
+            } finally {
+                // Refresh button disable conditions immediately after execution
+                mainHandler.post(MainActivity.this::refreshCustomActionConditions);
             }
         }, "CustomAction-Executor").start();
     }

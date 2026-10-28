@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
@@ -9,6 +10,7 @@
     android:paddingTop="16dp"
     android:paddingBottom="8dp">
 
+    <!-- Button Name Input -->
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/layout_action_name"
         android:layout_width="match_parent"
@@ -25,6 +27,7 @@
 
     </com.google.android.material.textfield.TextInputLayout>
 
+    <!-- Action Command Input (No max height) -->
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/layout_action_command"
         android:layout_width="match_parent"
@@ -38,8 +41,27 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:typeface="monospace"
-            android:inputType="textMultiLine"
-            android:maxLines="4" />
+            android:inputType="textMultiLine" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Disable Condition Command Input (No max height) -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/layout_action_condition"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:hint="@string/hint_button_condition"
+        app:helperText="@string/helper_button_condition"
+        app:helperTextEnabled="true"
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/edit_action_condition"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:typeface="monospace"
+            android:inputType="textMultiLine" />
 
     </com.google.android.material.textfield.TextInputLayout>
 

@@ -157,11 +157,19 @@ public class SettingsActivity extends AppCompatActivity {
                 View item = inflater.inflate(R.layout.item_settings_custom_action, containerCustomScripts, false);
                 TextView textName = item.findViewById(R.id.text_script_name);
                 TextView textCommand = item.findViewById(R.id.text_script_command);
+                TextView textCondition = item.findViewById(R.id.text_script_condition);
                 MaterialButton btnEdit = item.findViewById(R.id.btn_edit_script);
                 MaterialButton btnDelete = item.findViewById(R.id.btn_delete_script);
 
                 textName.setText(action.name);
                 textCommand.setText(action.command);
+
+                if (action.conditionCommand != null && !action.conditionCommand.trim().isEmpty()) {
+                    textCondition.setText("Disabled if: " + action.conditionCommand);
+                    textCondition.setVisibility(View.VISIBLE);
+                } else {
+                    textCondition.setVisibility(View.GONE);
+                }
 
                 item.setOnClickListener(v -> showScriptDialog(action));
                 btnEdit.setOnClickListener(v -> showScriptDialog(action));
@@ -183,11 +191,13 @@ public class SettingsActivity extends AppCompatActivity {
         TextInputLayout layoutCommand = dialogView.findViewById(R.id.layout_action_command);
         TextInputEditText editName = dialogView.findViewById(R.id.edit_action_name);
         TextInputEditText editCommand = dialogView.findViewById(R.id.edit_action_command);
+        TextInputEditText editCondition = dialogView.findViewById(R.id.edit_action_condition);
 
         boolean isEditing = (existingAction != null);
         if (isEditing) {
             editName.setText(existingAction.name);
             editCommand.setText(existingAction.command);
+            editCondition.setText(existingAction.conditionCommand);
         }
 
         MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this)
@@ -211,6 +221,7 @@ public class SettingsActivity extends AppCompatActivity {
         dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
             String name = editName.getText() != null ? editName.getText().toString().trim() : "";
             String command = editCommand.getText() != null ? editCommand.getText().toString().trim() : "";
+            String condition = editCondition.getText() != null ? editCondition.getText().toString().trim() : "";
 
             boolean valid = true;
             if (name.isEmpty()) {
@@ -234,11 +245,12 @@ public class SettingsActivity extends AppCompatActivity {
                         if (a.id.equals(existingAction.id)) {
                             a.name = name;
                             a.command = command;
+                            a.conditionCommand = condition;
                             break;
                         }
                     }
                 } else {
-                    list.add(new CustomAction(UUID.randomUUID().toString(), name, command));
+                    list.add(new CustomAction(UUID.randomUUID().toString(), name, command, condition));
                 }
                 CustomActionManager.save(SettingsActivity.this, list);
                 renderCustomScripts();
