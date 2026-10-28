@@ -57,6 +57,7 @@ public class MainActivity extends AppCompatActivity {
     private static class RowViewHolder {
         DashboardItem item;
         View rowRoot;
+        View iconContainer;
         ImageView imgIcon;
         TextView textTitle;
         TextView textSummary;
@@ -179,7 +180,7 @@ public class MainActivity extends AppCompatActivity {
 
         List<DashboardSection> sections = DashboardConfigManager.load(this);
         LayoutInflater inflater = LayoutInflater.from(this);
-        int dividerInset = (int) (72 * getResources().getDisplayMetrics().density);
+        int dividerInset = (int) (20 * getResources().getDisplayMetrics().density);
 
         for (DashboardSection section : sections) {
             if (section.items.isEmpty()) continue;
@@ -197,13 +198,19 @@ public class MainActivity extends AppCompatActivity {
                 RowViewHolder holder = new RowViewHolder();
                 holder.item = item;
                 holder.rowRoot = rowView.findViewById(R.id.row_root);
+                holder.iconContainer = rowView.findViewById(R.id.icon_container);
                 holder.imgIcon = rowView.findViewById(R.id.img_icon);
                 holder.textTitle = rowView.findViewById(R.id.text_title);
                 holder.textSummary = rowView.findViewById(R.id.text_summary);
                 holder.switchWidget = rowView.findViewById(R.id.switch_widget);
                 holder.imgChevron = rowView.findViewById(R.id.img_chevron);
 
-                holder.imgIcon.setImageResource(IconHelper.getDrawableRes(item.icon));
+                if (item.icon != null && !item.icon.trim().isEmpty() && !"none".equalsIgnoreCase(item.icon)) {
+                    holder.iconContainer.setVisibility(View.VISIBLE);
+                    holder.imgIcon.setImageResource(IconHelper.getDrawableRes(item.icon));
+                } else {
+                    holder.iconContainer.setVisibility(View.GONE);
+                }
                 holder.textTitle.setText(item.title);
                 holder.textSummary.setVisibility(View.GONE);
 
@@ -230,6 +237,7 @@ public class MainActivity extends AppCompatActivity {
                     );
                     divider.setLayoutParams(lp);
                     divider.setDividerInsetStart(dividerInset);
+                    divider.setDividerInsetEnd(dividerInset);
                     containerItems.addView(divider);
                 }
             }
@@ -384,10 +392,19 @@ public class MainActivity extends AppCompatActivity {
         progressBar.setVisibility(busy ? View.VISIBLE : View.GONE);
     }
 
+    private static ProcessBuilder buildShellProcess(String command) {
+        String trimmed = command != null ? command.trim() : "";
+        if (trimmed.startsWith("su ") || trimmed.equals("su")) {
+            return new ProcessBuilder("/system/bin/sh", "-c", trimmed);
+        } else {
+            return new ProcessBuilder("su", "-c", trimmed);
+        }
+    }
+
     private int executeCheckExitCode(String command) {
         Process process = null;
         try {
-            process = new ProcessBuilder("/system/bin/sh", "-c", command)
+            process = buildShellProcess(command)
                     .redirectErrorStream(true)
                     .start();
             boolean finished = process.waitFor(3, TimeUnit.SECONDS);
@@ -407,7 +424,7 @@ public class MainActivity extends AppCompatActivity {
     private String executeGetOutput(String command) {
         Process process = null;
         try {
-            process = new ProcessBuilder("/system/bin/sh", "-c", command)
+            process = buildShellProcess(command)
                     .redirectErrorStream(true)
                     .start();
 
@@ -446,7 +463,7 @@ public class MainActivity extends AppCompatActivity {
         new Thread(() -> {
             Process process = null;
             try {
-                process = new ProcessBuilder("/system/bin/sh", "-c", command)
+                process = buildShellProcess(command)
                         .redirectErrorStream(true)
                         .start();
 

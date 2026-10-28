@@ -39,6 +39,13 @@
             android:exported="false"
             android:theme="@style/Theme.Xray" />
 
+        <!-- Edit / Create Dashboard Item Activity -->
+        <activity
+            android:name=".EditItemActivity"
+            android:label="Edit Item"
+            android:exported="false"
+            android:theme="@style/Theme.Xray" />
+
         <!-- Quick Settings Tile Service (Xray) -->
         <service
             android:name=".XrayTileService"

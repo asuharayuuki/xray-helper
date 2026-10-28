@@ -7,6 +7,7 @@
     android:layout_height="match_parent"
     android:background="?attr/colorSurface">
 
+    <!-- Collapsible Large Header (Android Settings Style) -->
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/appbar"
         android:layout_width="match_parent"
@@ -14,14 +15,26 @@
         android:background="?attr/colorSurface"
         app:elevation="0dp">
 
-        <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/toolbar"
+        <com.google.android.material.appbar.CollapsingToolbarLayout
+            android:id="@+id/collapsing_toolbar"
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
+            android:layout_height="140dp"
+            app:layout_scrollFlags="scroll|exitUntilCollapsed|snap"
             app:title="@string/title_settings"
-            app:navigationIcon="?attr/homeAsUpIndicator"
-            app:titleCentered="false"
-            app:titleTextAppearance="?attr/textAppearanceHeadlineSmall" />
+            app:titleCollapseMode="fade"
+            app:expandedTitleTextAppearance="?attr/textAppearanceHeadlineLarge"
+            app:collapsedTitleTextAppearance="?attr/textAppearanceTitleLarge"
+            app:expandedTitleMarginStart="20dp"
+            app:expandedTitleMarginBottom="16dp">
+
+            <com.google.android.material.appbar.MaterialToolbar
+                android:id="@+id/toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="?attr/actionBarSize"
+                app:navigationIcon="?attr/homeAsUpIndicator"
+                app:layout_collapseMode="pin" />
+
+        </com.google.android.material.appbar.CollapsingToolbarLayout>
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -41,102 +54,63 @@
             android:paddingStart="16dp"
             android:paddingEnd="16dp"
             android:paddingTop="8dp"
-            android:paddingBottom="36dp">
+            android:paddingBottom="40dp">
 
-            <!-- Card 1: Dashboard Sections Management -->
+            <!-- Section 1: Dashboard Items -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Dashboard items"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingBottom="8dp"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardCornerRadius="24dp"
                 app:cardElevation="0dp"
-                app:strokeWidth="1dp"
-                app:strokeColor="?attr/colorOutlineVariant"
-                app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
-                android:layout_marginBottom="20dp">
+                app:strokeWidth="0dp"
+                app:cardBackgroundColor="?attr/colorSurfaceContainer"
+                android:layout_marginBottom="24dp">
 
                 <LinearLayout
+                    android:id="@+id/container_dashboard_items_list"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="20dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:layout_marginBottom="4dp">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/title_dashboard_layout"
-                            android:textAppearance="?attr/textAppearanceTitleLarge"
-                            android:textColor="?attr/colorOnSurface" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btn_add_section"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/btn_add_section"
-                            app:icon="@drawable/ic_add"
-                            app:cornerRadius="12dp"
-                            style="@style/Widget.Material3.Button.TonalButton" />
-
-                    </LinearLayout>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/desc_dashboard_layout"
-                        android:textAppearance="?attr/textAppearanceBodySmall"
-                        android:textColor="?attr/colorOnSurfaceVariant"
-                        android:layout_marginBottom="16dp" />
-
-                    <!-- Container for Sections -->
-                    <LinearLayout
-                        android:id="@+id/container_settings_sections"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical" />
-
-                </LinearLayout>
+                    android:orientation="vertical" />
 
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Card 2: Xray Core Commands -->
+            <!-- Section 2: Core Commands -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Proxy core commands"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingBottom="8dp"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardCornerRadius="24dp"
                 app:cardElevation="0dp"
-                app:strokeWidth="1dp"
-                app:strokeColor="?attr/colorOutlineVariant"
-                app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
-                android:layout_marginBottom="20dp">
+                app:strokeWidth="0dp"
+                app:cardBackgroundColor="?attr/colorSurfaceContainer"
+                android:layout_marginBottom="24dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
                     android:padding="20dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/title_xray_commands"
-                        android:textAppearance="?attr/textAppearanceTitleLarge"
-                        android:textColor="?attr/colorOnSurface" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/desc_xray_commands"
-                        android:textAppearance="?attr/textAppearanceBodySmall"
-                        android:textColor="?attr/colorOnSurfaceVariant"
-                        android:layout_marginTop="4dp"
-                        android:layout_marginBottom="16dp" />
 
                     <!-- Start Command -->
                     <com.google.android.material.textfield.TextInputLayout
@@ -209,7 +183,6 @@
 
                     </com.google.android.material.textfield.TextInputLayout>
 
-                    <!-- Save Commands Button -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_save_commands"
                         android:layout_width="wrap_content"
@@ -224,14 +197,55 @@
 
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Reset to Defaults Button -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_reset_all_defaults"
+            <!-- Section 3: Reset -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Reset"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingBottom="8dp"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
-                android:layout_height="50dp"
-                android:text="@string/btn_reset_defaults"
-                app:cornerRadius="16dp"
-                style="@style/Widget.Material3.Button.OutlinedButton" />
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="24dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp"
+                app:cardBackgroundColor="?attr/colorSurfaceContainer">
+
+                <LinearLayout
+                    android:id="@+id/row_reset_defaults"
+                    android:layout_width="match_parent"
+                    android:layout_height="64dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="20dp"
+                    android:paddingEnd="20dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/btn_reset_defaults"
+                        android:textSize="16sp"
+                        android:textColor="?attr/colorError" />
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_refresh"
+                        app:tint="?attr/colorError" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
 
         </LinearLayout>
 

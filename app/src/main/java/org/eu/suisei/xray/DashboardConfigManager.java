@@ -13,7 +13,7 @@ import java.util.UUID;
 public final class DashboardConfigManager {
 
     private static final String PREFS_NAME = "dashboard_config_prefs";
-    private static final String KEY_DASHBOARD_JSON = "dashboard_json_v1";
+    private static final String KEY_DASHBOARD_JSON = "dashboard_json_v2";
 
     private DashboardConfigManager() {}
 
@@ -95,7 +95,7 @@ public final class DashboardConfigManager {
                 "su -c 'settings put global adb_enabled 0; settings put global adb_wifi_enabled 0'",
                 "",
                 "",
-                "adb_u=$(settings get global adb_enabled); adb_w=$(settings get global adb_wifi_enabled); [ \"$adb_u\" = \"0\" ] && [ \"$adb_w\" = \"0\" ] && echo \"Disabled\" || echo \"Active\"",
+                "", // Default summaryCommand is empty: no description shown by default
                 "su -c '[ \"$(settings get global adb_enabled)\" = \"0\" ] && [ \"$(settings get global adb_wifi_enabled)\" = \"0\" ]'",
                 false
         ));
