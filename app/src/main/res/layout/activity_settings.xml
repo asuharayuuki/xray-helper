@@ -41,9 +41,9 @@
             android:paddingStart="16dp"
             android:paddingEnd="16dp"
             android:paddingTop="8dp"
-            android:paddingBottom="24dp">
+            android:paddingBottom="36dp">
 
-            <!-- Section 1: Xray Commands Card -->
+            <!-- Card 1: Dashboard Sections Management -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -52,7 +52,69 @@
                 app:strokeWidth="1dp"
                 app:strokeColor="?attr/colorOutlineVariant"
                 app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
-                android:layout_marginBottom="16dp">
+                android:layout_marginBottom="20dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="4dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/title_dashboard_layout"
+                            android:textAppearance="?attr/textAppearanceTitleLarge"
+                            android:textColor="?attr/colorOnSurface" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_add_section"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/btn_add_section"
+                            app:icon="@drawable/ic_add"
+                            app:cornerRadius="12dp"
+                            style="@style/Widget.Material3.Button.TonalButton" />
+
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/desc_dashboard_layout"
+                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:layout_marginBottom="16dp" />
+
+                    <!-- Container for Sections -->
+                    <LinearLayout
+                        android:id="@+id/container_settings_sections"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Card 2: Xray Core Commands -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="24dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="1dp"
+                app:strokeColor="?attr/colorOutlineVariant"
+                app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
+                android:layout_marginBottom="20dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -67,12 +129,20 @@
                         android:textAppearance="?attr/textAppearanceTitleLarge"
                         android:textColor="?attr/colorOnSurface" />
 
-                    <!-- Start Command (No max height) -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/desc_xray_commands"
+                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginBottom="16dp" />
+
+                    <!-- Start Command -->
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/layout_start_cmd"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
                         android:hint="@string/label_start_cmd"
                         style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
 
@@ -85,7 +155,7 @@
 
                     </com.google.android.material.textfield.TextInputLayout>
 
-                    <!-- Stop Command (No max height) -->
+                    <!-- Stop Command -->
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/layout_stop_cmd"
                         android:layout_width="match_parent"
@@ -139,100 +209,29 @@
 
                     </com.google.android.material.textfield.TextInputLayout>
 
-                    <!-- Action Buttons -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
+                    <!-- Save Commands Button -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_save_commands"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:layout_marginTop="20dp"
-                        android:gravity="end">
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btn_reset_commands"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/btn_reset_defaults"
-                            android:layout_marginEnd="10dp"
-                            app:cornerRadius="12dp"
-                            style="@style/Widget.Material3.Button.OutlinedButton" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btn_save_commands"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/btn_save"
-                            app:cornerRadius="12dp"
-                            style="@style/Widget.Material3.Button" />
-
-                    </LinearLayout>
+                        android:layout_marginTop="18dp"
+                        android:layout_gravity="end"
+                        android:text="@string/btn_save"
+                        app:cornerRadius="12dp"
+                        style="@style/Widget.Material3.Button" />
 
                 </LinearLayout>
 
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Section 2: Custom Scripts Management Card -->
-            <com.google.android.material.card.MaterialCardView
+            <!-- Reset to Defaults Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_reset_all_defaults"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:cardCornerRadius="24dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="1dp"
-                app:strokeColor="?attr/colorOutlineVariant"
-                app:cardBackgroundColor="?attr/colorSurfaceContainerLow">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="20dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:layout_marginBottom="12dp">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/title_custom_actions"
-                            android:textAppearance="?attr/textAppearanceTitleLarge"
-                            android:textColor="?attr/colorOnSurface" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btn_add_script"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/btn_add_action"
-                            app:icon="@drawable/ic_add"
-                            app:cornerRadius="12dp"
-                            style="@style/Widget.Material3.Button.TonalButton" />
-
-                    </LinearLayout>
-
-                    <TextView
-                        android:id="@+id/text_empty_scripts"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/empty_custom_actions"
-                        android:textAppearance="?attr/textAppearanceBodyMedium"
-                        android:textColor="?attr/colorOutline"
-                        android:gravity="center"
-                        android:paddingTop="20dp"
-                        android:paddingBottom="20dp"
-                        android:visibility="gone" />
-
-                    <LinearLayout
-                        android:id="@+id/container_settings_custom_scripts"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical" />
-
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
+                android:layout_height="50dp"
+                android:text="@string/btn_reset_defaults"
+                app:cornerRadius="16dp"
+                style="@style/Widget.Material3.Button.OutlinedButton" />
 
         </LinearLayout>
 
