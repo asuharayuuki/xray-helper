@@ -2,24 +2,25 @@ package org.eu.suisei.xray;
 
 import android.content.res.Configuration;
 import android.os.Bundle;
-import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
-import android.widget.GridLayout;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.appbar.CollapsingToolbarLayout;
 import com.google.android.material.appbar.MaterialToolbar;
@@ -30,9 +31,7 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 public class EditItemActivity extends AppCompatActivity {
@@ -56,9 +55,7 @@ public class EditItemActivity extends AppCompatActivity {
     private View rowSelectIcon;
     private ImageView imgSelectedIcon;
     private TextView textSelectedIconName;
-    private LinearLayout containerQuickIcons;
     private String selectedIcon = "shield";
-    private final Map<String, View> quickIconViews = new HashMap<>();
 
     // Command Views
     private TextInputLayout layoutOnCmd;
@@ -85,7 +82,6 @@ public class EditItemActivity extends AppCompatActivity {
 
         setupWindowInsets();
         initViews();
-        setupIconPicker();
         loadData();
     }
 
@@ -133,7 +129,7 @@ public class EditItemActivity extends AppCompatActivity {
         rowSelectIcon = findViewById(R.id.row_select_icon);
         imgSelectedIcon = findViewById(R.id.img_selected_icon);
         textSelectedIconName = findViewById(R.id.text_selected_icon_name);
-        containerQuickIcons = findViewById(R.id.container_quick_icons);
+        rowSelectIcon.setOnClickListener(v -> showIconPickerDialog());
 
         layoutOnCmd = findViewById(R.id.layout_on_cmd);
         editOnCmd = findViewById(R.id.edit_on_cmd);
@@ -159,115 +155,77 @@ public class EditItemActivity extends AppCompatActivity {
         btnDeleteItem.setOnClickListener(v -> confirmDeleteItem());
     }
 
-    private void setupIconPicker() {
-        containerQuickIcons.removeAllViews();
-        quickIconViews.clear();
-        int size = (int) (46 * getResources().getDisplayMetrics().density);
-        int margin = (int) (4 * getResources().getDisplayMetrics().density);
-
-        for (String iconName : IconHelper.AVAILABLE_ICONS) {
-            FrameLayout frame = new FrameLayout(this);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(size, size);
-            lp.setMargins(margin, 0, margin, 0);
-            frame.setLayoutParams(lp);
-            frame.setBackgroundResource(R.drawable.bg_icon_avatar);
-
-            ImageView iconView = new ImageView(this);
-            FrameLayout.LayoutParams iconLp = new FrameLayout.LayoutParams((int) (22 * getResources().getDisplayMetrics().density),
-                    (int) (22 * getResources().getDisplayMetrics().density));
-            iconLp.gravity = Gravity.CENTER;
-            iconView.setLayoutParams(iconLp);
-            iconView.setImageResource(IconHelper.getDrawableRes(iconName));
-            frame.addView(iconView);
-
-            frame.setOnClickListener(v -> setSelectedIcon(iconName));
-            containerQuickIcons.addView(frame);
-            quickIconViews.put(iconName, frame);
-        }
-
-        rowSelectIcon.setOnClickListener(v -> showIconPickerDialog());
-    }
-
     private void setSelectedIcon(String iconName) {
         if (iconName == null || iconName.trim().isEmpty()) iconName = "shield";
         this.selectedIcon = iconName.toLowerCase();
 
         imgSelectedIcon.setImageResource(IconHelper.getDrawableRes(selectedIcon));
         textSelectedIconName.setText(formatIconName(selectedIcon));
-
-        // Update highlight state in quick bar
-        for (Map.Entry<String, View> entry : quickIconViews.entrySet()) {
-            boolean isSelected = entry.getKey().equalsIgnoreCase(selectedIcon);
-            entry.getValue().setBackgroundResource(isSelected ? R.drawable.bg_quick_icon_selected : R.drawable.bg_icon_avatar);
-        }
     }
 
     private String formatIconName(String name) {
         if (name == null || name.isEmpty()) return "Shield";
-        return Character.toUpperCase(name.charAt(0)) + name.substring(1).toLowerCase();
+        String clean = name.replace('_', ' ');
+        return Character.toUpperCase(clean.charAt(0)) + clean.substring(1).toLowerCase();
     }
 
     private void showIconPickerDialog() {
-        int pad = (int) (16 * getResources().getDisplayMetrics().density);
-        GridLayout grid = new GridLayout(this);
-        grid.setColumnCount(4);
-        grid.setPadding(pad, pad, pad, pad);
+        RecyclerView recyclerView = new RecyclerView(this);
+        int padH = (int) (12 * getResources().getDisplayMetrics().density);
+        int padV = (int) (8 * getResources().getDisplayMetrics().density);
+        recyclerView.setPadding(padH, padV, padH, padV);
+        recyclerView.setClipToPadding(false);
+        recyclerView.setLayoutManager(new GridLayoutManager(this, 4));
 
         androidx.appcompat.app.AlertDialog dialog = new MaterialAlertDialogBuilder(this)
                 .setTitle("Select icon")
-                .setView(grid)
+                .setView(recyclerView)
                 .setNegativeButton(R.string.btn_cancel, null)
                 .create();
 
-        int itemWidth = (int) (72 * getResources().getDisplayMetrics().density);
-        int itemHeight = (int) (76 * getResources().getDisplayMetrics().density);
+        recyclerView.setAdapter(new RecyclerView.Adapter<IconViewHolder>() {
+            @NonNull
+            @Override
+            public IconViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+                View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_icon_grid_tile, parent, false);
+                return new IconViewHolder(v);
+            }
 
-        for (String iconName : IconHelper.AVAILABLE_ICONS) {
-            LinearLayout itemLayout = new LinearLayout(this);
-            itemLayout.setOrientation(LinearLayout.VERTICAL);
-            itemLayout.setGravity(Gravity.CENTER);
-            itemLayout.setLayoutParams(new GridLayout.LayoutParams(
-                    GridLayout.spec(GridLayout.UNDEFINED),
-                    GridLayout.spec(GridLayout.UNDEFINED, 1f)
-            ));
-            itemLayout.setMinimumWidth(itemWidth);
-            itemLayout.setMinimumHeight(itemHeight);
-            itemLayout.setBackgroundResource(R.drawable.bg_picker_row);
-            itemLayout.setClickable(true);
-            itemLayout.setFocusable(true);
+            @Override
+            public void onBindViewHolder(@NonNull IconViewHolder holder, int position) {
+                String iconName = IconHelper.AVAILABLE_ICONS[position];
+                holder.iconImage.setImageResource(IconHelper.getDrawableRes(iconName));
+                holder.iconName.setText(formatIconName(iconName));
 
-            FrameLayout iconContainer = new FrameLayout(this);
-            int avatarSize = (int) (40 * getResources().getDisplayMetrics().density);
-            iconContainer.setLayoutParams(new LinearLayout.LayoutParams(avatarSize, avatarSize));
-            boolean isSelected = iconName.equalsIgnoreCase(selectedIcon);
-            iconContainer.setBackgroundResource(isSelected ? R.drawable.bg_quick_icon_selected : R.drawable.bg_icon_avatar);
+                boolean isSelected = iconName.equalsIgnoreCase(selectedIcon);
+                holder.iconAvatar.setBackgroundResource(isSelected ? R.drawable.bg_quick_icon_selected : R.drawable.bg_icon_avatar);
 
-            ImageView iconView = new ImageView(this);
-            FrameLayout.LayoutParams iconLp = new FrameLayout.LayoutParams((int) (22 * getResources().getDisplayMetrics().density),
-                    (int) (22 * getResources().getDisplayMetrics().density));
-            iconLp.gravity = Gravity.CENTER;
-            iconView.setLayoutParams(iconLp);
-            iconView.setImageResource(IconHelper.getDrawableRes(iconName));
-            iconContainer.addView(iconView);
+                holder.itemView.setOnClickListener(v -> {
+                    setSelectedIcon(iconName);
+                    dialog.dismiss();
+                });
+            }
 
-            TextView nameView = new TextView(this);
-            nameView.setText(formatIconName(iconName));
-            nameView.setTextSize(12f);
-            nameView.setGravity(Gravity.CENTER);
-            nameView.setPadding(0, (int) (4 * getResources().getDisplayMetrics().density), 0, 0);
-
-            itemLayout.addView(iconContainer);
-            itemLayout.addView(nameView);
-
-            itemLayout.setOnClickListener(v -> {
-                setSelectedIcon(iconName);
-                dialog.dismiss();
-            });
-
-            grid.addView(itemLayout);
-        }
+            @Override
+            public int getItemCount() {
+                return IconHelper.AVAILABLE_ICONS.length;
+            }
+        });
 
         dialog.show();
+    }
+
+    private static class IconViewHolder extends RecyclerView.ViewHolder {
+        final FrameLayout iconAvatar;
+        final ImageView iconImage;
+        final TextView iconName;
+
+        IconViewHolder(@NonNull View itemView) {
+            super(itemView);
+            iconAvatar = itemView.findViewById(R.id.icon_avatar);
+            iconImage = itemView.findViewById(R.id.icon_image);
+            iconName = itemView.findViewById(R.id.icon_name);
+        }
     }
 
     private void loadData() {
