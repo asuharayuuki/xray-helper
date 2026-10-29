@@ -131,6 +131,7 @@
     <string name="icon_coffee">咖啡</string>
     <string name="icon_mic">麦克风</string>
     <string name="icon_check">勾选</string>
+    <string name="icon_radio_button_checked">选中单选框</string>
     <string name="title_config_transfer">配置管理</string>
     <string name="action_import_config">导入配置</string>
     <string name="action_export_config">导出配置</string>

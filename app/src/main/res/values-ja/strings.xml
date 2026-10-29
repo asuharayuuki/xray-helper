@@ -20,7 +20,7 @@
     <string name="btn_refresh">更新</string>
     <string name="caffeine_off">オフ</string>
     <string name="caffeine_infinite">無制限</string>
-    <string name="record_tile_label">録音</string>
+    <string name="record_tile_label">レコーダー</string>
     <string name="title_settings">設定</string>
     <string name="title_xray_commands">Xray コアのコマンド</string>
     <string name="desc_xray_commands">Xray コアの起動、停止、確認に使用する既定の Root コマンドです。</string>
@@ -131,6 +131,7 @@
     <string name="icon_coffee">コーヒー</string>
     <string name="icon_mic">マイク</string>
     <string name="icon_check">チェック</string>
+    <string name="icon_radio_button_checked">選択中ラジオボタン</string>
     <string name="title_config_transfer">設定の管理</string>
     <string name="action_import_config">設定をインポート</string>
     <string name="action_export_config">設定をエクスポート</string>
@@ -147,11 +148,11 @@
     <string name="msg_command_error">コマンドを実行できませんでした</string>
     <string name="hint_http_proxy_default">ホスト:ポート（例：127.0.0.1:2080）。空欄にすると既定のアドレスに戻ります。</string>
     <string name="title_quick_settings_tiles">クイック設定タイル</string>
-    <string name="title_record_tile_settings">録音タイル</string>
+    <string name="title_record_tile_settings">レコーダータイル</string>
     <string name="desc_record_tile_settings">タイルのラベル、アイコン、実行コマンドをカスタマイズ</string>
     <string name="label_record_tile_title">タイルラベル</string>
     <string name="label_record_tile_cmd">実行コマンド (root で実行)</string>
-    <string name="msg_record_tile_saved">録音タイルの設定を保存しました</string>
+    <string name="msg_record_tile_saved">レコーダータイルの設定を保存しました</string>
     <string name="caffeine_notification_channel_desc">Caffeine による画面常時オン実行中に通知を表示します</string>
     <string name="caffeine_notification_title">Caffeine が有効です</string>
     <string name="caffeine_notification_text_timed">画面常時オン：残り %1$s</string>

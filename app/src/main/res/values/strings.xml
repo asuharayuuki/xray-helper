@@ -134,6 +134,7 @@
     <string name="icon_coffee">Coffee</string>
     <string name="icon_mic">Microphone</string>
     <string name="icon_check">Check</string>
+    <string name="icon_radio_button_checked">Radio button checked</string>
     <string name="title_config_transfer">Configuration</string>
     <string name="action_import_config">Import configuration</string>
     <string name="action_export_config">Export configuration</string>

@@ -43,12 +43,9 @@ public final class AppConfig {
     public static final String DEFAULT_HTTP_PROXY = "127.0.0.1:2080";
     public static final String DEFAULT_PROCESS_NAME = "xray";
 
-    public static final String DEFAULT_RECORD_TILE_ICON = "mic";
+    public static final String DEFAULT_RECORD_TILE_ICON = "radio_button_checked";
     public static final String DEFAULT_RECORD_TILE_CMD =
-            "am start -a voicenote.intent.action.START_RECORDING -n com.sec.android.app.voicenote/.activity.ShortcutActivity 2>/dev/null || " +
-            "am start -n com.sec.android.app.voicenote/com.sec.android.app.voicenote.main.VNMainActivity 2>/dev/null || " +
-            "am start -a android.provider.MediaStore.RECORD_SOUND 2>/dev/null; " +
-            "cmd statusbar collapse";
+            "am start -a voicenote.intent.action.START_RECORDING -n com.sec.android.app.voicenote/.activity.ShortcutActivity; cmd statusbar collapse";
 
     private AppConfig() {}
 

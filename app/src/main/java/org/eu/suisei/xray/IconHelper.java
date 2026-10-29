@@ -11,7 +11,7 @@ public final class IconHelper {
             "lock", "fingerprint", "visibility", "visibility_off",
             "tune", "settings", "refresh", "history", "timer", "analytics",
             "folder", "bell", "airplane", "rocket", "star", "heart",
-            "android", "coffee", "mic", "check"
+            "android", "coffee", "mic", "check", "radio_button_checked"
     };
 
     private IconHelper() {}
@@ -60,6 +60,7 @@ public final class IconHelper {
             case "coffee": return R.string.icon_coffee;
             case "mic": return R.string.icon_mic;
             case "check": return R.string.icon_check;
+            case "radio_button_checked": return R.string.icon_radio_button_checked;
             default: return R.string.icon_shield;
         }
     }
@@ -160,6 +161,9 @@ public final class IconHelper {
                 return R.drawable.ic_security;
             case "check":
                 return R.drawable.ic_check;
+            case "radio_button_checked":
+            case "record":
+                return R.drawable.ic_radio_button_checked;
             case "shield":
             default:
                 return R.drawable.ic_shield;
