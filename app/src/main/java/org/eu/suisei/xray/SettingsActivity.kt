@@ -1,14 +1,18 @@
 package org.eu.suisei.xray
 
+import android.content.ComponentName
 import android.content.Intent
 import android.content.ClipData
 import android.net.Uri
 import android.os.Bundle
+import android.service.quicksettings.TileService
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.*
 import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -33,6 +37,7 @@ import top.yukonga.miuix.kmp.basic.*
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Add
 import top.yukonga.miuix.kmp.icon.extended.Back
+import top.yukonga.miuix.kmp.icon.extended.Ok
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -72,6 +77,9 @@ class SettingsActivity : ComponentActivity() {
                 importState.pending.value = null
                 sectionsState.value = DashboardConfigManager.load(this@SettingsActivity)
                 XrayTileService.requestRefresh(this@SettingsActivity)
+                try {
+                    TileService.requestListeningState(this@SettingsActivity, ComponentName(this@SettingsActivity, RecordTileService::class.java))
+                } catch (ignored: Exception) {}
                 Toast.makeText(this@SettingsActivity, R.string.msg_import_success, Toast.LENGTH_SHORT).show()
             } catch (e: CancellationException) {
                 throw e
@@ -151,6 +159,9 @@ class SettingsActivity : ComponentActivity() {
                         DashboardConfigManager.save(this@SettingsActivity, defaults)
                         sectionsState.value = defaults
                         XrayTileService.requestRefresh(this@SettingsActivity)
+                        try {
+                            TileService.requestListeningState(this@SettingsActivity, ComponentName(this@SettingsActivity, RecordTileService::class.java))
+                        } catch (ignored: Exception) {}
                         Toast.makeText(this@SettingsActivity, R.string.msg_defaults_restored, Toast.LENGTH_SHORT).show()
                     }
                 )
@@ -173,6 +184,227 @@ fun SettingsScreen(
     sections: List<DashboardSection>,
     transferBusy: Boolean,
     hasPendingImport: Boolean,
+    onImport: () -> Unit,
+    onExport: () -> Unit,
+    onConfirmImport: () -> Unit,
+    onCancelImport: () -> Unit,
+    onBack: () -> Unit,
+    onItemClick: (DashboardItem, String) -> Unit,
+    onAddNewItem: () -> Unit,
+    onResetDefaults: () -> Unit
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    var isEditingRecordTile by remember { mutableStateOf(false) }
+    var isSelectingRecordIcon by remember { mutableStateOf(false) }
+
+    var recordLabel by remember { mutableStateOf(AppConfig.getRecordTileLabel(context)) }
+    var recordIcon by remember { mutableStateOf(AppConfig.getRecordTileIcon(context)) }
+    var recordCmd by remember { mutableStateOf(AppConfig.getRecordTileCommand(context)) }
+
+    BackHandler(enabled = isSelectingRecordIcon) {
+        isSelectingRecordIcon = false
+    }
+    BackHandler(enabled = isEditingRecordTile && !isSelectingRecordIcon) {
+        isEditingRecordTile = false
+    }
+
+    AnimatedContent(
+        targetState = Pair(isEditingRecordTile, isSelectingRecordIcon),
+        transitionSpec = {
+            if (targetState.second || (!initialState.first && targetState.first)) {
+                (slideInHorizontally { it } + fadeIn()).togetherWith(
+                    slideOutHorizontally { -it / 3 } + fadeOut()
+                )
+            } else {
+                (slideInHorizontally { -it / 3 } + fadeIn()).togetherWith(
+                    slideOutHorizontally { it } + fadeOut()
+                )
+            }
+        },
+        label = "SettingsNavTransition"
+    ) { (editingRecordTile, selectingRecordIcon) ->
+        if (selectingRecordIcon) {
+            IconPickerSubScreen(
+                currentIcon = recordIcon,
+                onSelectIcon = { newIcon ->
+                    recordIcon = newIcon
+                    isSelectingRecordIcon = false
+                },
+                onBack = { isSelectingRecordIcon = false }
+            )
+        } else if (editingRecordTile) {
+            EditRecordTileScreen(
+                label = recordLabel,
+                onLabelChange = { recordLabel = it },
+                icon = recordIcon,
+                onOpenIconPicker = { isSelectingRecordIcon = true },
+                command = recordCmd,
+                onCommandChange = { recordCmd = it },
+                onBack = { isEditingRecordTile = false },
+                onSave = {
+                    AppConfig.setRecordTileLabel(context, recordLabel.trim())
+                    AppConfig.setRecordTileIcon(context, recordIcon)
+                    AppConfig.setRecordTileCommand(context, recordCmd.trim())
+                    try {
+                        TileService.requestListeningState(context, ComponentName(context, RecordTileService::class.java))
+                    } catch (ignored: Exception) {}
+                    Toast.makeText(context, R.string.msg_record_tile_saved, Toast.LENGTH_SHORT).show()
+                    isEditingRecordTile = false
+                }
+            )
+        } else {
+            SettingsMainContent(
+                sections = sections,
+                transferBusy = transferBusy,
+                hasPendingImport = hasPendingImport,
+                recordLabel = recordLabel,
+                recordIcon = recordIcon,
+                onOpenRecordTileSettings = {
+                    recordLabel = AppConfig.getRecordTileLabel(context)
+                    recordIcon = AppConfig.getRecordTileIcon(context)
+                    recordCmd = AppConfig.getRecordTileCommand(context)
+                    isEditingRecordTile = true
+                },
+                onImport = onImport,
+                onExport = onExport,
+                onConfirmImport = onConfirmImport,
+                onCancelImport = onCancelImport,
+                onBack = onBack,
+                onItemClick = onItemClick,
+                onAddNewItem = onAddNewItem,
+                onResetDefaults = {
+                    onResetDefaults()
+                    recordLabel = AppConfig.getRecordTileLabel(context)
+                    recordIcon = AppConfig.getRecordTileIcon(context)
+                    recordCmd = AppConfig.getRecordTileCommand(context)
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun EditRecordTileScreen(
+    label: String,
+    onLabelChange: (String) -> Unit,
+    icon: String,
+    onOpenIconPicker: () -> Unit,
+    command: String,
+    onCommandChange: (String) -> Unit,
+    onBack: () -> Unit,
+    onSave: () -> Unit
+) {
+    val scrollBehavior = MiuixScrollBehavior()
+    val resources = androidx.compose.ui.platform.LocalResources.current
+    val iconLabels = remember(resources) {
+        IconHelper.AVAILABLE_ICONS.associateWith { resources.getString(IconHelper.getLabelRes(it)) }
+    }
+
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = {
+            TopAppBar(
+                title = stringResource(R.string.title_record_tile_settings),
+                largeTitle = stringResource(R.string.title_record_tile_settings),
+                scrollBehavior = scrollBehavior,
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(MiuixIcons.Back, contentDescription = stringResource(R.string.action_back))
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onSave) {
+                        Icon(MiuixIcons.Ok, contentDescription = stringResource(R.string.btn_save))
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+            contentPadding = PaddingValues(bottom = 48.dp)
+        ) {
+            item(key = "record_general_header") {
+                SmallTitle(text = stringResource(R.string.title_general))
+            }
+            item(key = "record_general_card") {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp)
+                        .padding(bottom = 12.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        TextField(
+                            value = label,
+                            onValueChange = onLabelChange,
+                            label = stringResource(R.string.label_record_tile_title),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            }
+
+            item(key = "record_icon_header") {
+                SmallTitle(text = stringResource(R.string.hint_item_icon))
+            }
+            item(key = "record_icon_card") {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp)
+                        .padding(bottom = 12.dp)
+                ) {
+                    ArrowPreference(
+                        title = stringResource(R.string.label_selected_icon),
+                        summary = iconLabels[icon] ?: icon,
+                        startAction = {
+                            Icon(
+                                painter = painterResource(IconHelper.getDrawableRes(icon)),
+                                contentDescription = null
+                            )
+                        },
+                        onClick = onOpenIconPicker
+                    )
+                }
+            }
+
+            item(key = "record_cmd_header") {
+                SmallTitle(text = stringResource(R.string.title_commands))
+            }
+            item(key = "record_cmd_card") {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp)
+                        .padding(bottom = 12.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        TextField(
+                            value = command,
+                            onValueChange = onCommandChange,
+                            label = stringResource(R.string.label_record_tile_cmd),
+                            singleLine = false,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SettingsMainContent(
+    sections: List<DashboardSection>,
+    transferBusy: Boolean,
+    hasPendingImport: Boolean,
+    recordLabel: String,
+    recordIcon: String,
+    onOpenRecordTileSettings: () -> Unit,
     onImport: () -> Unit,
     onExport: () -> Unit,
     onConfirmImport: () -> Unit,
@@ -238,10 +470,10 @@ fun SettingsScreen(
                     }
                 }
             }
+
             item(key = "dashboard_items_header") {
                 SmallTitle(text = stringResource(R.string.title_dashboard_items))
             }
-
             item(key = "dashboard_items_card") {
                 Card(
                     modifier = Modifier
@@ -286,10 +518,34 @@ fun SettingsScreen(
                 }
             }
 
+            item(key = "quick_settings_tiles_header") {
+                SmallTitle(text = stringResource(R.string.title_quick_settings_tiles))
+            }
+            item(key = "quick_settings_tiles_card") {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp)
+                        .padding(bottom = 12.dp)
+                ) {
+                    ArrowPreference(
+                        title = recordLabel.ifBlank { stringResource(R.string.title_record_tile_settings) },
+                        summary = stringResource(R.string.desc_record_tile_settings),
+                        enabled = !transferBusy && !hasPendingImport,
+                        startAction = {
+                            Icon(
+                                painter = painterResource(IconHelper.getDrawableRes(recordIcon)),
+                                contentDescription = null
+                            )
+                        },
+                        onClick = onOpenRecordTileSettings
+                    )
+                }
+            }
+
             item(key = "reset_header") {
                 SmallTitle(text = stringResource(R.string.title_reset))
             }
-
             item(key = "reset_card") {
                 Card(
                     modifier = Modifier

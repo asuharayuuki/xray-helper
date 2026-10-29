@@ -149,4 +149,15 @@
     <string name="msg_command_failed">Command failed (exit code %1$d)</string>
     <string name="msg_command_error">Unable to execute command</string>
     <string name="hint_http_proxy_default">Host:port, e.g. 127.0.0.1:2080. Leave empty to restore the default.</string>
+    <string name="title_quick_settings_tiles">Quick settings tiles</string>
+    <string name="title_record_tile_settings">Record tile</string>
+    <string name="desc_record_tile_settings">Customize button label, icon, and action command</string>
+    <string name="label_record_tile_title">Tile label</string>
+    <string name="label_record_tile_cmd">Action command (Executed via root)</string>
+    <string name="msg_record_tile_saved">Record tile settings saved</string>
+    <string name="caffeine_notification_channel_desc">Shows active status while Caffeine keeps the screen awake</string>
+    <string name="caffeine_notification_title">Caffeine is active</string>
+    <string name="caffeine_notification_text_timed">Screen staying awake: %1$s remaining</string>
+    <string name="caffeine_notification_text_infinite">Screen staying awake until turned off</string>
+    <string name="caffeine_notification_stop">Stop</string>
 </resources>

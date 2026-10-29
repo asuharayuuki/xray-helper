@@ -146,4 +146,15 @@
     <string name="msg_command_failed">命令执行失败（退出码 %1$d）</string>
     <string name="msg_command_error">无法执行命令</string>
     <string name="hint_http_proxy_default">主机:端口，例如 127.0.0.1:2080。留空恢复默认地址。</string>
+    <string name="title_quick_settings_tiles">快捷设置磁贴</string>
+    <string name="title_record_tile_settings">录音磁贴</string>
+    <string name="desc_record_tile_settings">自定义磁贴文字、图标和执行指令</string>
+    <string name="label_record_tile_title">磁贴文字</string>
+    <string name="label_record_tile_cmd">执行指令（通过 root 执行）</string>
+    <string name="msg_record_tile_saved">录音磁贴设置已保存</string>
+    <string name="caffeine_notification_channel_desc">在保持屏幕常亮时显示通知，避免被系统停止</string>
+    <string name="caffeine_notification_title">Caffeine 正在保持屏幕常亮</string>
+    <string name="caffeine_notification_text_timed">屏幕保持常亮：剩余 %1$s</string>
+    <string name="caffeine_notification_text_infinite">屏幕将持续保持常亮，直至手动关闭</string>
+    <string name="caffeine_notification_stop">停止</string>
 </resources>

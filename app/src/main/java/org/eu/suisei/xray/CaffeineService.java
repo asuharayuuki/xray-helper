@@ -1,11 +1,16 @@
 package org.eu.suisei.xray;
 
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.ServiceInfo;
 import android.os.Binder;
 import android.os.Build;
 import android.os.CountDownTimer;
@@ -13,14 +18,22 @@ import android.os.IBinder;
 import android.os.PowerManager;
 import android.service.quicksettings.TileService;
 
+import androidx.core.app.NotificationCompat;
+
+import java.util.Locale;
+
 /**
- * Lightweight background service holding a WakeLock while Caffeine is active.
- * Stops automatically when expired, cancelled, or screen turns off.
+ * Lightweight foreground service holding a WakeLock while Caffeine is active.
+ * Shows an active notification to prevent being stopped by the system.
+ * Stops automatically and removes notification when expired, cancelled, or screen turns off.
  * Strict battery priority: zero resource consumption when inactive.
  */
 public class CaffeineService extends Service {
 
     public static final String ACTION_START_NEXT = "org.eu.suisei.xray.action.CAFFEINE_NEXT";
+    public static final String ACTION_STOP = "org.eu.suisei.xray.action.CAFFEINE_STOP";
+    private static final String CHANNEL_ID = "caffeine_foreground_channel";
+    private static final int NOTIFICATION_ID = 2001;
 
     public static final int[] DURATIONS = new int[] {
             5 * 60,
@@ -68,6 +81,8 @@ public class CaffeineService extends Service {
             wakeLock.setReferenceCounted(false);
         }
 
+        createNotificationChannel();
+
         // Conserve battery: auto release WakeLock immediately when screen turns off.
         // Explicitly specify RECEIVER_NOT_EXPORTED for Android 14+ (API 34/37) safety.
         screenOffReceiver = new BroadcastReceiver() {
@@ -85,10 +100,62 @@ public class CaffeineService extends Service {
         }
     }
 
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                    CHANNEL_ID,
+                    getString(R.string.caffeine_tile_label),
+                    NotificationManager.IMPORTANCE_LOW
+            );
+            channel.setDescription(getString(R.string.caffeine_notification_channel_desc));
+            channel.setShowBadge(false);
+            NotificationManager nm = getSystemService(NotificationManager.class);
+            if (nm != null) {
+                nm.createNotificationChannel(channel);
+            }
+        }
+    }
+
+    private Notification buildNotification(int seconds) {
+        Intent stopIntent = new Intent(this, CaffeineService.class);
+        stopIntent.setAction(ACTION_STOP);
+        PendingIntent stopPendingIntent = PendingIntent.getService(
+                this,
+                1,
+                stopIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
+        String contentText;
+        if (seconds == Integer.MAX_VALUE) {
+            contentText = getString(R.string.caffeine_notification_text_infinite);
+        } else {
+            String timeStr = String.format(Locale.US, "%02d:%02d", seconds / 60, seconds % 60);
+            contentText = getString(R.string.caffeine_notification_text_timed, timeStr);
+        }
+
+        return new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setSmallIcon(R.drawable.local_cafe_filled)
+                .setContentTitle(getString(R.string.caffeine_notification_title))
+                .setContentText(contentText)
+                .setOngoing(true)
+                .setOnlyAlertOnce(true)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .addAction(0, getString(R.string.caffeine_notification_stop), stopPendingIntent)
+                .build();
+    }
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (intent != null && ACTION_START_NEXT.equals(intent.getAction())) {
-            cycleNext();
+        if (intent != null) {
+            if (ACTION_STOP.equals(intent.getAction())) {
+                stopCaffeine();
+                return START_NOT_STICKY;
+            }
+            if (ACTION_START_NEXT.equals(intent.getAction())) {
+                cycleNext();
+            }
         }
         return START_NOT_STICKY;
     }
@@ -152,6 +219,21 @@ public class CaffeineService extends Service {
             wakeLock.acquire((seconds + 5L) * 1000L);
         }
 
+        // Show foreground notification to prevent being killed by system
+        Notification notification = buildNotification(seconds);
+        try {
+            if (Build.VERSION.SDK_INT >= 34) {
+                startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
+            } else {
+                startForeground(NOTIFICATION_ID, notification);
+            }
+        } catch (Throwable e) {
+            try {
+                startForeground(NOTIFICATION_ID, notification);
+            } catch (Throwable ignored) {
+            }
+        }
+
         if (seconds == Integer.MAX_VALUE) {
             if (callback != null) {
                 callback.onTick(Integer.MAX_VALUE);
@@ -163,6 +245,10 @@ public class CaffeineService extends Service {
                     remainingSeconds = (int) (millisUntilFinished / 1000L);
                     if (callback != null) {
                         callback.onTick(remainingSeconds);
+                    }
+                    NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                    if (nm != null && isActive()) {
+                        nm.notify(NOTIFICATION_ID, buildNotification(remainingSeconds));
                     }
                 }
 
@@ -190,6 +276,13 @@ public class CaffeineService extends Service {
             callback.onExpire();
         }
 
+        // Remove foreground notification immediately when stopped
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE);
+        } else {
+            stopForeground(true);
+        }
+
         // Notify tile to update display
         try {
             TileService.requestListeningState(
@@ -204,7 +297,6 @@ public class CaffeineService extends Service {
 
     @android.annotation.SuppressLint("WakelockTimeout")
     private void acquireUntilScreenOff() {
-        // The explicit infinite option is released by screen-off, stop, or onDestroy.
         wakeLock.acquire();
     }
 
@@ -225,6 +317,11 @@ public class CaffeineService extends Service {
         }
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE);
+        } else {
+            stopForeground(true);
         }
     }
 }

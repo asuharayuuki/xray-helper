@@ -146,4 +146,15 @@
     <string name="msg_command_failed">コマンドが失敗しました（終了コード %1$d）</string>
     <string name="msg_command_error">コマンドを実行できませんでした</string>
     <string name="hint_http_proxy_default">ホスト:ポート（例：127.0.0.1:2080）。空欄にすると既定のアドレスに戻ります。</string>
+    <string name="title_quick_settings_tiles">クイック設定タイル</string>
+    <string name="title_record_tile_settings">録音タイル</string>
+    <string name="desc_record_tile_settings">タイルのラベル、アイコン、実行コマンドをカスタマイズ</string>
+    <string name="label_record_tile_title">タイルラベル</string>
+    <string name="label_record_tile_cmd">実行コマンド (root で実行)</string>
+    <string name="msg_record_tile_saved">録音タイルの設定を保存しました</string>
+    <string name="caffeine_notification_channel_desc">Caffeine による画面常時オン実行中に通知を表示します</string>
+    <string name="caffeine_notification_title">Caffeine が有効です</string>
+    <string name="caffeine_notification_text_timed">画面常時オン：残り %1$s</string>
+    <string name="caffeine_notification_text_infinite">画面がオフになるまで常時オンを維持します</string>
+    <string name="caffeine_notification_stop">停止</string>
 </resources>

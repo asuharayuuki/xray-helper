@@ -10,6 +10,9 @@ public final class AppConfig {
     public static final String KEY_STOP_CMD = "cmd_stop";
     public static final String KEY_HTTP_PROXY = "http_proxy";
     public static final String KEY_PROCESS_NAME = "process_name";
+    public static final String KEY_RECORD_TILE_LABEL = "record_tile_label";
+    public static final String KEY_RECORD_TILE_ICON = "record_tile_icon";
+    public static final String KEY_RECORD_TILE_CMD = "record_tile_cmd";
 
     public static final String DEFAULT_START_CMD =
             "/system/bin/setsid -d /data/local/tmp/xray/xray run -c /data/local/tmp/xray/config.json </dev/null >/dev/null 2>&1 &";
@@ -39,6 +42,13 @@ public final class AppConfig {
 
     public static final String DEFAULT_HTTP_PROXY = "127.0.0.1:2080";
     public static final String DEFAULT_PROCESS_NAME = "xray";
+
+    public static final String DEFAULT_RECORD_TILE_ICON = "mic";
+    public static final String DEFAULT_RECORD_TILE_CMD =
+            "am start -a voicenote.intent.action.START_RECORDING -n com.sec.android.app.voicenote/.activity.ShortcutActivity 2>/dev/null || " +
+            "am start -n com.sec.android.app.voicenote/com.sec.android.app.voicenote.main.VNMainActivity 2>/dev/null || " +
+            "am start -a android.provider.MediaStore.RECORD_SOUND 2>/dev/null; " +
+            "cmd statusbar collapse";
 
     private AppConfig() {}
 
@@ -98,6 +108,36 @@ public final class AppConfig {
     public static void setProcessName(Context context, String name) {
         SharedPreferences sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         sp.edit().putString(KEY_PROCESS_NAME, name).apply();
+    }
+
+    public static String getRecordTileLabel(Context context) {
+        SharedPreferences sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        return sp.getString(KEY_RECORD_TILE_LABEL, context.getString(R.string.record_tile_label));
+    }
+
+    public static void setRecordTileLabel(Context context, String label) {
+        SharedPreferences sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        sp.edit().putString(KEY_RECORD_TILE_LABEL, label).apply();
+    }
+
+    public static String getRecordTileIcon(Context context) {
+        SharedPreferences sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        return sp.getString(KEY_RECORD_TILE_ICON, DEFAULT_RECORD_TILE_ICON);
+    }
+
+    public static void setRecordTileIcon(Context context, String icon) {
+        SharedPreferences sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        sp.edit().putString(KEY_RECORD_TILE_ICON, icon).apply();
+    }
+
+    public static String getRecordTileCommand(Context context) {
+        SharedPreferences sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        return sp.getString(KEY_RECORD_TILE_CMD, DEFAULT_RECORD_TILE_CMD);
+    }
+
+    public static void setRecordTileCommand(Context context, String cmd) {
+        SharedPreferences sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        sp.edit().putString(KEY_RECORD_TILE_CMD, cmd).apply();
     }
 
     public static void resetDefaults(Context context) {

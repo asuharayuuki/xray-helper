@@ -1,17 +1,13 @@
 package org.eu.suisei.xray;
 
-import android.app.PendingIntent;
-import android.content.ComponentName;
-import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.drawable.Icon;
-import android.os.Build;
 import android.service.quicksettings.Tile;
 import android.service.quicksettings.TileService;
 
 /**
- * Quick Settings Tile to trigger Voice Recording via Samsung Voice Note Shortcut.
- * Tries native PendingIntent invocation first, falls back to root execution.
+ * Customizable Quick Settings Tile to trigger Voice Recording or user-defined actions.
+ * Label, icon, and command are configurable via AppConfig.
  * Zero background persistence and strict battery conservation.
  */
 public class RecordTileService extends TileService {
@@ -32,63 +28,37 @@ public class RecordTileService extends TileService {
     public void onClick() {
         super.onClick();
 
-        // 1. Try native start using official PendingIntent API for TileService
-        boolean started = false;
-        try {
-            Intent intent = new Intent("voicenote.intent.action.START_RECORDING");
-            intent.setComponent(new ComponentName(
-                    "com.sec.android.app.voicenote",
-                    "com.sec.android.app.voicenote.activity.ShortcutActivity"
-            ));
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-
-            PendingIntent pi = PendingIntent.getActivity(
-                    this,
-                    0,
-                    intent,
-                    PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
-            );
-            if (Build.VERSION.SDK_INT >= 34) {
-                startActivityAndCollapse(pi);
-            } else {
-                startLegacyActivity(intent);
-            }
-            started = true;
-        } catch (Throwable ignored) {
-            started = false;
-        }
-
-        // 2. Fall back to root execution if native fails
-        if (!started) {
+        final String cmd = AppConfig.getRecordTileCommand(this);
+        if (cmd != null && !cmd.trim().isEmpty()) {
             new Thread(() -> {
                 try {
-                    ProcessBuilder pb = new ProcessBuilder(
-                            "su", "-c",
-                            "am start -a voicenote.intent.action.START_RECORDING -n com.sec.android.app.voicenote/.activity.ShortcutActivity; cmd statusbar collapse"
-                    );
-                    pb.start();
-                } catch (Exception ignored) {
+                    Process process = new ProcessBuilder("su", "-c", cmd).start();
+                    int exitCode = process.waitFor();
+                    if (exitCode != 0) {
+                        new ProcessBuilder("sh", "-c", cmd).start();
+                    }
+                } catch (Throwable e) {
+                    try {
+                        new ProcessBuilder("sh", "-c", cmd).start();
+                    } catch (Throwable ignored) {
+                    }
                 }
-            }, "Record-Starter").start();
+            }, "Record-Runner").start();
         }
 
         updateTile();
-    }
-
-    @android.annotation.SuppressLint("StartActivityAndCollapseDeprecated")
-    @SuppressWarnings("deprecation")
-    private void startLegacyActivity(Intent intent) {
-        // Only called below API 34, where the PendingIntent overload does not exist.
-        startActivityAndCollapse(intent);
     }
 
     private void updateTile() {
         Tile tile = getQsTile();
         if (tile == null) return;
 
-        tile.setLabel(getString(R.string.record_tile_label));
+        String label = AppConfig.getRecordTileLabel(this);
+        String iconName = AppConfig.getRecordTileIcon(this);
+
+        tile.setLabel(label != null && !label.trim().isEmpty() ? label : getString(R.string.record_tile_label));
         tile.setState(Tile.STATE_INACTIVE);
-        tile.setIcon(Icon.createWithResource(this, R.drawable.ic_mic));
+        tile.setIcon(Icon.createWithResource(this, IconHelper.getDrawableRes(iconName)));
         tile.setSubtitle(null);
         tile.setStateDescription(null);
         tile.updateTile();

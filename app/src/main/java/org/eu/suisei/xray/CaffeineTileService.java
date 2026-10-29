@@ -6,6 +6,7 @@ import android.content.res.Configuration;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.graphics.drawable.Icon;
+import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -111,10 +112,14 @@ public class CaffeineTileService extends TileService {
         super.onClick();
 
         // A bound-only service is destroyed when the panel closes. Start it explicitly
-        // so an active timer survives unbinding; all actions remain serialized on main.
+        // as a foreground service so an active timer survives unbinding.
         Intent intent = new Intent(this, CaffeineService.class);
         intent.setAction(CaffeineService.ACTION_START_NEXT);
-        startService(intent);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(intent);
+        } else {
+            startService(intent);
+        }
         bindIfNeeded();
     }
 
