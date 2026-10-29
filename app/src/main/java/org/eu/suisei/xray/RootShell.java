@@ -2,12 +2,6 @@ package org.eu.suisei.xray;
 
 import android.content.Context;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Executes root shell commands for Xray process, HTTP proxy, and debugging management.
@@ -68,8 +62,8 @@ public final class RootShell {
     private static String buildScriptFunctions(Context context) {
         String startCmd = AppConfig.getStartCommand(context);
         String stopCmd = AppConfig.getStopCommand(context);
-        String proxy = AppConfig.getHttpProxy(context);
-        String procName = AppConfig.getProcessName(context);
+        String proxy = quote(AppConfig.getHttpProxy(context));
+        String procName = quote(AppConfig.getProcessName(context));
 
         return "stop_xray() {\n" +
                 stopCmd + "\n" +
@@ -103,11 +97,11 @@ public final class RootShell {
                 "}\n" +
                 "set_proxy() {\n" +
                 "    settings put global http_proxy " + proxy + "\n" +
-                "    [ \"$(settings get global http_proxy)\" = \"" + proxy + "\" ]\n" +
+                "    [ \"$(settings get global http_proxy)\" = " + proxy + " ]\n" +
                 "}\n" +
                 "clear_proxy() {\n" +
                 "    settings put global http_proxy :0\n" +
-                "    [ \"$(settings get global http_proxy)\" != \"" + proxy + "\" ]\n" +
+                "    [ \"$(settings get global http_proxy)\" != " + proxy + " ]\n" +
                 "}\n" +
                 "report_status() {\n" +
                 "    p=$(settings get global http_proxy)\n" +
@@ -123,12 +117,16 @@ public final class RootShell {
                 "    echo \"START_TIME=$st\"\n" +
                 "    echo \"ADB_USB=$adb_u\"\n" +
                 "    echo \"ADB_WIFI=$adb_w\"\n" +
-                "    if [ \"$p\" = \"" + proxy + "\" ]; then\n" +
+                "    if [ \"$p\" = " + proxy + " ]; then\n" +
                 "        [ -n \"$x\" ] && echo \"STATE=ON\" || echo \"STATE=EXITED\"\n" +
                 "    else\n" +
                 "        echo \"STATE=OFF\"\n" +
                 "    fi\n" +
                 "}\n";
+    }
+
+    private static String quote(String value) {
+        return "'" + value.replace("'", "'\\''") + "'";
     }
 
     private RootShell() {
@@ -140,14 +138,14 @@ public final class RootShell {
      */
     public static Result toggle(Context context) {
         String functions = buildScriptFunctions(context);
-        String proxy = AppConfig.getHttpProxy(context);
-        String procName = AppConfig.getProcessName(context);
+        String proxy = quote(AppConfig.getHttpProxy(context));
+        String procName = quote(AppConfig.getProcessName(context));
 
         String script = functions +
                 "p=$(settings get global http_proxy)\n" +
                 "x=$(pidof " + procName + ")\n" +
                 "res=\"OK\"\n" +
-                "if [ \"$p\" = \"" + proxy + "\" ]; then\n" +
+                "if [ \"$p\" = " + proxy + " ]; then\n" +
                 "    if [ -n \"$x\" ]; then\n" +
                 "        clear_proxy\n" +
                 "        if ! stop_xray; then\n" +
@@ -191,7 +189,7 @@ public final class RootShell {
                 "fi\n" +
                 "fp=$(settings get global http_proxy)\n" +
                 "fx=$(pidof " + procName + ")\n" +
-                "if [ \"$fp\" = \"" + proxy + "\" ]; then\n" +
+                "if [ \"$fp\" = " + proxy + " ]; then\n" +
                 "    [ -n \"$fx\" ] && final_state=\"ON\" || final_state=\"EXITED\"\n" +
                 "else\n" +
                 "    final_state=\"OFF\"\n" +
@@ -206,13 +204,13 @@ public final class RootShell {
      * Queries the actual current state for the TileService.
      */
     public static Result queryState(Context context) {
-        String proxy = AppConfig.getHttpProxy(context);
-        String procName = AppConfig.getProcessName(context);
+        String proxy = quote(AppConfig.getHttpProxy(context));
+        String procName = quote(AppConfig.getProcessName(context));
 
         String script =
                 "p=$(settings get global http_proxy)\n" +
                 "x=$(pidof " + procName + ")\n" +
-                "if [ \"$p\" = \"" + proxy + "\" ]; then\n" +
+                "if [ \"$p\" = " + proxy + " ]; then\n" +
                 "    [ -n \"$x\" ] && echo \"STATE=ON\" || echo \"STATE=EXITED\"\n" +
                 "else\n" +
                 "    echo \"STATE=OFF\"\n" +
@@ -292,40 +290,10 @@ public final class RootShell {
     }
 
     private static Result execute(String script, long timeoutMs) {
-        Process process = null;
         try {
-            ProcessBuilder pb = new ProcessBuilder("su", "-c", script);
-            pb.redirectErrorStream(true);
-            process = pb.start();
-
-            List<String> lines = new ArrayList<>();
-            final Process proc = process;
-
-            // Concurrently drain process input stream to prevent pipe buffer deadlocks
-            Thread readerThread = new Thread(() -> {
-                try (BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(proc.getInputStream(), StandardCharsets.UTF_8))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        lines.add(line.trim());
-                    }
-                } catch (Exception ignored) {
-                }
-            }, "RootShell-Reader");
-            readerThread.start();
-
-            boolean finished = process.waitFor(timeoutMs, TimeUnit.MILLISECONDS);
-            if (!finished) {
-                process.destroyForcibly();
-                readerThread.interrupt();
-                return new Result(ActionResult.ERROR, State.ERROR);
-            }
-
-            readerThread.join(1000);
-
-            if (process.exitValue() != 0) {
-                return new Result(ActionResult.ERROR, State.ERROR);
-            }
+            CommandRunner.Result command = CommandRunner.run(new ProcessBuilder("su", "-c", script), timeoutMs, 65536);
+            if (command.timedOut || command.exitCode != 0) return new Result(ActionResult.ERROR, State.ERROR);
+            String[] lines = command.output.split("\\r?\\n");
 
             ActionResult parsedResult = ActionResult.ERROR;
             State parsedState = State.ERROR;
@@ -354,48 +322,15 @@ public final class RootShell {
 
             return new Result(parsedResult, parsedState);
         } catch (Exception e) {
-            if (process != null) {
-                process.destroyForcibly();
-            }
             return new Result(ActionResult.ERROR, State.ERROR);
         }
     }
 
     private static DetailedStatus executeDetailed(String script, long timeoutMs) {
-        Process process = null;
         try {
-            ProcessBuilder pb = new ProcessBuilder("su", "-c", script);
-            pb.redirectErrorStream(true);
-            process = pb.start();
-
-            List<String> lines = new ArrayList<>();
-            final Process proc = process;
-
-            // Concurrently drain process input stream to prevent pipe buffer deadlocks
-            Thread readerThread = new Thread(() -> {
-                try (BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(proc.getInputStream(), StandardCharsets.UTF_8))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        lines.add(line.trim());
-                    }
-                } catch (Exception ignored) {
-                }
-            }, "RootShell-DetailedReader");
-            readerThread.start();
-
-            boolean finished = process.waitFor(timeoutMs, TimeUnit.MILLISECONDS);
-            if (!finished) {
-                process.destroyForcibly();
-                readerThread.interrupt();
-                return new DetailedStatus(State.ERROR, "Unknown", null, 0L, false, false);
-            }
-
-            readerThread.join(1000);
-
-            if (process.exitValue() != 0) {
-                return new DetailedStatus(State.ERROR, "Unknown", null, 0L, false, false);
-            }
+            CommandRunner.Result command = CommandRunner.run(new ProcessBuilder("su", "-c", script), timeoutMs, 65536);
+            if (command.timedOut || command.exitCode != 0) return new DetailedStatus(State.ERROR, "Unknown", null, 0L, false, false);
+            String[] lines = command.output.split("\\r?\\n");
 
             boolean isRootGranted = true;
             String proxy = null;
@@ -446,9 +381,6 @@ public final class RootShell {
 
             return new DetailedStatus(state, proxy, pid, startTimeMs, isRootGranted, isAdbEnabled);
         } catch (Exception e) {
-            if (process != null) {
-                process.destroyForcibly();
-            }
             return new DetailedStatus(State.ERROR, "Unknown", null, 0L, false, false);
         }
     }

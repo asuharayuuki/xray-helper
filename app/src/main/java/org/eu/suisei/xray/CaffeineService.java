@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Binder;
+import android.os.Build;
 import android.os.CountDownTimer;
 import android.os.IBinder;
 import android.os.PowerManager;
@@ -77,7 +78,11 @@ public class CaffeineService extends Service {
                 }
             }
         };
-        registerReceiver(screenOffReceiver, new IntentFilter(Intent.ACTION_SCREEN_OFF), Context.RECEIVER_NOT_EXPORTED);
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(screenOffReceiver, new IntentFilter(Intent.ACTION_SCREEN_OFF), Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(screenOffReceiver, new IntentFilter(Intent.ACTION_SCREEN_OFF));
+        }
     }
 
     @Override
@@ -139,8 +144,12 @@ public class CaffeineService extends Service {
         durationSeconds = seconds;
         remainingSeconds = seconds;
 
-        if (!wakeLock.isHeld()) {
-            wakeLock.acquire();
+        // Reacquire when changing duration so the system timeout matches the new selection.
+        if (wakeLock.isHeld()) wakeLock.release();
+        if (seconds == Integer.MAX_VALUE) {
+            acquireUntilScreenOff();
+        } else {
+            wakeLock.acquire((seconds + 5L) * 1000L);
         }
 
         if (seconds == Integer.MAX_VALUE) {
@@ -193,9 +202,20 @@ public class CaffeineService extends Service {
         stopSelf();
     }
 
+    @android.annotation.SuppressLint("WakelockTimeout")
+    private void acquireUntilScreenOff() {
+        // The explicit infinite option is released by screen-off, stop, or onDestroy.
+        wakeLock.acquire();
+    }
+
     @Override
     public void onDestroy() {
         super.onDestroy();
+        if (countDownTimer != null) {
+            countDownTimer.cancel();
+            countDownTimer = null;
+        }
+        callback = null;
         sInstance = null;
         if (screenOffReceiver != null) {
             try {

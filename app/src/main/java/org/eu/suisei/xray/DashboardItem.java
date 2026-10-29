@@ -6,6 +6,13 @@ public class DashboardItem {
 
     public String id;
     public String title;
+    // Optional resource key for built-in names; custom names have no key.
+    public String titleKey;
+
+    public String getDisplayTitle(android.content.Context context) {
+        return DashboardConfigManager.localizedTitle(context, titleKey, title);
+    }
+
     public String type; // SWITCH or BUTTON
     public String icon; // icon identifier, e.g. "shield", "bug"
     public String onCommand;

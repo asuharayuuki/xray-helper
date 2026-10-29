@@ -1,10 +1,25 @@
 # Xray Helper
 
-A lightweight, high-performance Android utility app tailored for rooted Android devices (Android 14+ / Android 17). Designed with a modern, elegant **Xiaomi HyperOS / MIUI Design System** using [compose-miuix-ui/miuix](https://github.com/compose-miuix-ui/miuix) for Jetpack Compose, featuring zero background battery consumption.
+A lightweight, high-performance Android utility app tailored for rooted Android devices (Android 11+). Designed with a modern, elegant **Xiaomi HyperOS / MIUI Design System** using [compose-miuix-ui/miuix](https://github.com/compose-miuix-ui/miuix) for Jetpack Compose, featuring zero background battery consumption.
 
 ---
 
 ## ✨ Features
+
+### Languages
+- Supports English, Chinese (Simplified), and Japanese; follows the system language, with English as the fallback.
+- On Android 13+, select a language for Xray in the system's per-app language settings.
+- Interface labels, accessibility descriptions, Quick Settings tile states, and built-in dashboard names are localized. Custom names, shell commands, and command output are preserved.
+- Product and technical names such as Xray, Caffeine, Android, Root, HTTP, DNS, VPN, and Wi-Fi retain their original spelling.
+
+### Configuration import and export
+- Settings → **Export configuration** creates a JSON backup and opens the Android system share sheet. Only that cache file is shared through a temporary read-only content URI.
+- Settings → **Import configuration** opens the system file picker. After validating the file, the app asks before replacing all settings and dashboard items. Cancelling or selecting an invalid file leaves the current configuration unchanged.
+- Backups contain Xray start/stop commands, process name, HTTP proxy address, and all dashboard sections/items (including commands and built-in localization metadata). They do not include the external Xray binary or its own configuration files.
+- Format: `xray-helper-config`, version `1`, UTF-8 JSON, up to 1 MiB. Unknown versions, invalid field types, duplicate IDs, and missing or duplicate core controls are rejected. Imported commands are stored; state checks and actions execute when the dashboard or corresponding controls are used.
+- Existing dashboard configurations are read automatically from the older preferences store; new saves keep the settings and dashboard together so imports can be applied in a single transaction.
+
+Validation: `python tools/check_localization.py`, `./gradlew testDebugUnitTest assembleRelease lintRelease`.
 
 ### 1. Modern Miuix / HyperOS Compose UI
 - **Powered by Miuix**: Built with [compose-miuix-ui/miuix](https://github.com/compose-miuix-ui/miuix), bringing Xiaomi HyperOS's sleek design language to Android.
@@ -25,7 +40,7 @@ A lightweight, high-performance Android utility app tailored for rooted Android 
 ### 3. Dedicated Full-Page Item Editor (`EditItemActivity`)
 - Completely eliminates cramped multi-layer dialogs and box-in-box nesting.
 - **Spacious Command Inputs**: All command text fields support multi-line scripts with **unlimited vertical height** (no restrictive line limits).
-- **Core Integration**: Direct access to Core start/stop commands and process name without redundant proxy settings.
+- **Core Integration**: Direct access to Core start/stop commands, process name, and the HTTP proxy address (`host:port`). Leaving the proxy address empty restores `127.0.0.1:2080`; custom addresses are included in configuration imports and exports.
 - **Visual Icon Picker Dialog**: Instant 4-column `WindowDialog` grid selector with clear English labels and selection highlights.
 - **Save & Delete**: Save via the top-right checkmark icon (`MiuixIcons.Ok`), with dedicated destructive actions for custom items.
 
@@ -54,7 +69,7 @@ A lightweight, high-performance Android utility app tailored for rooted Android 
 ## 🛠️ Building & Requirements
 
 - **compileSdk**: 37 (Android 17)
-- **minSdk**: 24 (Android 7.0+)
+- **minSdk**: 30 (Android 11+)
 - **targetSdk**: 37
 - **Kotlin**: 2.0.21 / 2.4+ Compose Compiler
 - **UI Library**: `top.yukonga.miuix.kmp:miuix-ui-android:0.9.4`

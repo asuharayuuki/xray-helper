@@ -2,6 +2,7 @@ package org.eu.suisei.xray;
 
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.res.Configuration;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.graphics.drawable.Icon;
@@ -27,9 +28,9 @@ public class CaffeineTileService extends TileService {
     private final ServiceConnection connection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
+            if (!bound) return;
             CaffeineService.LocalBinder binder = (CaffeineService.LocalBinder) service;
             caffeineService = binder.getService();
-            bound = true;
             caffeineService.setCallback(new CaffeineService.Callback() {
                 @Override
                 public void onTick(int remainingSeconds) {
@@ -51,7 +52,6 @@ public class CaffeineTileService extends TileService {
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
-            bound = false;
             caffeineService = null;
         }
     };
@@ -66,19 +66,43 @@ public class CaffeineTileService extends TileService {
             updateTileDisplay(false, 0);
         }
 
-        Intent intent = new Intent(this, CaffeineService.class);
-        bindService(intent, connection, Context.BIND_AUTO_CREATE);
+        bindIfNeeded();
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        CaffeineService service = CaffeineService.getInstance();
+        updateTileDisplay(service != null && service.isActive(),
+                service == null ? 0 : service.getRemainingSeconds());
     }
 
     @Override
     public void onStopListening() {
         super.onStopListening();
+        unbind();
+    }
+
+    @Override
+    public void onDestroy() {
+        unbind();
+        super.onDestroy();
+    }
+
+    private void bindIfNeeded() {
+        if (!bound) {
+            bound = bindService(new Intent(this, CaffeineService.class), connection, Context.BIND_AUTO_CREATE);
+        }
+    }
+
+    private void unbind() {
         if (bound) {
             if (caffeineService != null) {
                 caffeineService.setCallback(null);
             }
             unbindService(connection);
             bound = false;
+            caffeineService = null;
         }
     }
 
@@ -86,17 +110,12 @@ public class CaffeineTileService extends TileService {
     public void onClick() {
         super.onClick();
 
-        CaffeineService service = CaffeineService.getInstance();
-        if (service != null) {
-            service.cycleNext();
-            updateTileDisplay(service.isActive(), service.getRemainingSeconds());
-        } else {
-            Intent intent = new Intent(this, CaffeineService.class);
-            intent.setAction(CaffeineService.ACTION_START_NEXT);
-            startService(intent);
-            bindService(intent, connection, Context.BIND_AUTO_CREATE);
-            updateTileDisplay(true, CaffeineService.DURATIONS[0]);
-        }
+        // A bound-only service is destroyed when the panel closes. Start it explicitly
+        // so an active timer survives unbinding; all actions remain serialized on main.
+        Intent intent = new Intent(this, CaffeineService.class);
+        intent.setAction(CaffeineService.ACTION_START_NEXT);
+        startService(intent);
+        bindIfNeeded();
     }
 
     private void updateTileDisplay(boolean active, int seconds) {

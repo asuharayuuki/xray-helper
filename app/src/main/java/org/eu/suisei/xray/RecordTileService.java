@@ -3,7 +3,9 @@ package org.eu.suisei.xray;
 import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.graphics.drawable.Icon;
+import android.os.Build;
 import android.service.quicksettings.Tile;
 import android.service.quicksettings.TileService;
 
@@ -17,6 +19,12 @@ public class RecordTileService extends TileService {
     @Override
     public void onStartListening() {
         super.onStartListening();
+        updateTile();
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
         updateTile();
     }
 
@@ -40,7 +48,11 @@ public class RecordTileService extends TileService {
                     intent,
                     PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
             );
-            startActivityAndCollapse(pi);
+            if (Build.VERSION.SDK_INT >= 34) {
+                startActivityAndCollapse(pi);
+            } else {
+                startLegacyActivity(intent);
+            }
             started = true;
         } catch (Throwable ignored) {
             started = false;
@@ -61,6 +73,13 @@ public class RecordTileService extends TileService {
         }
 
         updateTile();
+    }
+
+    @android.annotation.SuppressLint("StartActivityAndCollapseDeprecated")
+    @SuppressWarnings("deprecation")
+    private void startLegacyActivity(Intent intent) {
+        // Only called below API 34, where the PendingIntent overload does not exist.
+        startActivityAndCollapse(intent);
     }
 
     private void updateTile() {

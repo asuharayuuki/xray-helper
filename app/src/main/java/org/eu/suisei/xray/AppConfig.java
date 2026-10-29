@@ -5,7 +5,7 @@ import android.content.SharedPreferences;
 
 public final class AppConfig {
 
-    private static final String PREFS_NAME = "xray_config";
+    static final String PREFS_NAME = "xray_config";
     public static final String KEY_START_CMD = "cmd_start";
     public static final String KEY_STOP_CMD = "cmd_stop";
     public static final String KEY_HTTP_PROXY = "http_proxy";
@@ -41,6 +41,24 @@ public final class AppConfig {
     public static final String DEFAULT_PROCESS_NAME = "xray";
 
     private AppConfig() {}
+
+    public static ConfigCodec.Snapshot snapshot(Context context) throws Exception {
+        return new ConfigCodec.Snapshot(getStartCommand(context), getStopCommand(context),
+                getHttpProxy(context), getProcessName(context),
+                DashboardConfigManager.toJson(DashboardConfigManager.load(context)).toString());
+    }
+
+    public static void importSnapshot(Context context, ConfigCodec.Snapshot snapshot) throws Exception {
+        // Validate everything before making one atomic SharedPreferences update.
+        ConfigCodec.Snapshot checked = ConfigCodec.decode(ConfigCodec.encode(snapshot));
+        boolean saved = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+                .putString(KEY_START_CMD, checked.startCommand)
+                .putString(KEY_STOP_CMD, checked.stopCommand)
+                .putString(KEY_HTTP_PROXY, checked.httpProxy)
+                .putString(KEY_PROCESS_NAME, checked.processName)
+                .putString(DashboardConfigManager.KEY_DASHBOARD_JSON, checked.dashboardJson).commit();
+        if (!saved) throw new java.io.IOException("Unable to persist configuration");
+    }
 
     public static String getStartCommand(Context context) {
         SharedPreferences sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);

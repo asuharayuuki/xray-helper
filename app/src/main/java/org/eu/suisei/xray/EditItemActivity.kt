@@ -47,7 +47,7 @@ class EditItemActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val targetItemId = intent.getStringExtra(EXTRA_ITEM_ID)
-        val defaultSection = intent.getStringExtra(EXTRA_DEFAULT_SECTION) ?: "Actions"
+        val defaultSection = intent.getStringExtra(EXTRA_DEFAULT_SECTION) ?: getString(R.string.default_section_actions)
 
         val sections = DashboardConfigManager.load(this)
         var editingItem: DashboardItem? = null
@@ -70,10 +70,10 @@ class EditItemActivity : ComponentActivity() {
             MiuixAppTheme {
                 EditItemScreen(
                     initialItem = editingItem,
-                    initialSectionTitle = parentSection?.title ?: if (editingItem?.isCore == true) "Proxy" else defaultSection,
+                    initialSectionTitle = parentSection?.getDisplayTitle(this) ?: if (editingItem?.isCore == true) getString(R.string.default_section_proxy) else defaultSection,
                     onBack = { finish() },
-                    onSave = { updatedItem, targetSectionTitle ->
-                        saveItem(updatedItem, targetSectionTitle, parentSection)
+                    onSave = { updatedItem, targetSectionTitle, httpProxy ->
+                        saveItem(updatedItem, targetSectionTitle, parentSection, httpProxy)
                     },
                     onDelete = { itemToDelete ->
                         deleteItem(itemToDelete)
@@ -83,7 +83,7 @@ class EditItemActivity : ComponentActivity() {
         }
     }
 
-    private fun saveItem(item: DashboardItem, targetSectionTitle: String, originalParent: DashboardSection?) {
+    private fun saveItem(item: DashboardItem, targetSectionTitle: String, originalParent: DashboardSection?, httpProxy: String) {
         if (item.title.isBlank()) {
             Toast.makeText(this, R.string.error_name_empty, Toast.LENGTH_SHORT).show()
             return
@@ -92,13 +92,13 @@ class EditItemActivity : ComponentActivity() {
         val effectiveSectionTitle = if (targetSectionTitle.isNotBlank()) {
             targetSectionTitle.trim()
         } else {
-            if (item.isCore) "Proxy" else "Actions"
+            getString(if (item.isCore) R.string.default_section_proxy else R.string.default_section_actions)
         }
 
         val sections = DashboardConfigManager.load(this)
 
         // Find or create target section
-        var targetSection = sections.find { it.title.equals(effectiveSectionTitle, ignoreCase = true) }
+        var targetSection = sections.find { it.getDisplayTitle(this).equals(effectiveSectionTitle, ignoreCase = true) }
         if (targetSection == null) {
             targetSection = DashboardSection(UUID.randomUUID().toString(), effectiveSectionTitle, mutableListOf())
             sections.add(targetSection)
@@ -109,9 +109,10 @@ class EditItemActivity : ComponentActivity() {
             if (!item.onCommand.isNullOrBlank()) AppConfig.setStartCommand(this, item.onCommand)
             if (!item.offCommand.isNullOrBlank()) AppConfig.setStopCommand(this, item.offCommand)
             AppConfig.setProcessName(this, if (!item.stateCheckCommand.isNullOrBlank()) item.stateCheckCommand else "xray")
+            AppConfig.setHttpProxy(this, httpProxy.trim().ifEmpty { AppConfig.DEFAULT_HTTP_PROXY })
 
             // Update item in Dashboard config
-            if (originalParent != null && !originalParent.title.equals(effectiveSectionTitle, ignoreCase = true)) {
+            if (originalParent != null && originalParent.id != targetSection.id) {
                 sections.find { it.id == originalParent.id }?.items?.removeAll { it.id == item.id }
                 targetSection.items.add(item)
             } else {
@@ -125,7 +126,8 @@ class EditItemActivity : ComponentActivity() {
             }
 
             DashboardConfigManager.save(this, sections)
-            Toast.makeText(this, "Core settings saved", Toast.LENGTH_SHORT).show()
+            XrayTileService.requestRefresh(this)
+            Toast.makeText(this, R.string.msg_core_saved, Toast.LENGTH_SHORT).show()
             finish()
             return
         }
@@ -135,7 +137,7 @@ class EditItemActivity : ComponentActivity() {
         if (isNew) {
             targetSection.items.add(item)
         } else {
-            if (originalParent != null && !originalParent.title.equals(effectiveSectionTitle, ignoreCase = true)) {
+            if (originalParent != null && originalParent.id != targetSection.id) {
                 sections.find { it.id == originalParent.id }?.items?.removeAll { it.id == item.id }
                 targetSection.items.add(item)
             } else {
@@ -150,7 +152,7 @@ class EditItemActivity : ComponentActivity() {
         }
 
         DashboardConfigManager.save(this, sections)
-        Toast.makeText(this, "Item saved", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, R.string.msg_item_saved, Toast.LENGTH_SHORT).show()
         finish()
     }
 
@@ -161,7 +163,7 @@ class EditItemActivity : ComponentActivity() {
             sec.items.removeAll { it.id == item.id }
         }
         DashboardConfigManager.save(this, sections)
-        Toast.makeText(this, "Item deleted", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, R.string.msg_item_deleted, Toast.LENGTH_SHORT).show()
         finish()
     }
 }
@@ -171,21 +173,21 @@ fun EditItemScreen(
     initialItem: DashboardItem?,
     initialSectionTitle: String,
     onBack: () -> Unit,
-    onSave: (DashboardItem, String) -> Unit,
+    onSave: (DashboardItem, String, String) -> Unit,
     onDelete: (DashboardItem) -> Unit
 ) {
     val isCore = initialItem?.isCore == true
     val isEditing = initialItem != null
 
     val pageTitle = when {
-        isCore -> "Edit Core"
-        isEditing -> "Edit item"
-        else -> "New item"
+        isCore -> stringResource(R.string.title_edit_core)
+        isEditing -> stringResource(R.string.dialog_title_edit_item)
+        else -> stringResource(R.string.title_new_item)
     }
 
     val context = androidx.compose.ui.platform.LocalContext.current
 
-    var title by remember { mutableStateOf(initialItem?.title ?: "") }
+    var title by remember { mutableStateOf(initialItem?.getDisplayTitle(context) ?: "") }
     var sectionTitle by remember { mutableStateOf(initialSectionTitle) }
     var isSwitch by remember {
         mutableStateOf(
@@ -206,6 +208,9 @@ fun EditItemScreen(
     }
     var processName by remember {
         mutableStateOf(if (isCore) AppConfig.getProcessName(context) else "")
+    }
+    var httpProxy by androidx.compose.runtime.saveable.rememberSaveable {
+        mutableStateOf(if (isCore) AppConfig.getHttpProxy(context) else "")
     }
     var stateCheckCmd by remember { mutableStateOf(initialItem?.stateCheckCommand ?: "") }
     var summaryCmd by remember { mutableStateOf(initialItem?.summaryCommand ?: "") }
@@ -261,6 +266,8 @@ fun EditItemScreen(
                 offCmdChange = { offCmd = it },
                 processName = processName,
                 onProcessNameChange = { processName = it },
+                httpProxy = httpProxy,
+                onHttpProxyChange = { httpProxy = it },
                 stateCheckCmd = stateCheckCmd,
                 onStateCheckCmdChange = { stateCheckCmd = it },
                 summaryCmd = summaryCmd,
@@ -283,14 +290,18 @@ fun EditItemScreen(
                         disableConditionCmd.trim(),
                         isCore
                     )
-                    onSave(savedItem, sectionTitle.trim())
+                    if (initialItem != null && title.trim() == initialItem.getDisplayTitle(context)) {
+                        savedItem.title = initialItem.title
+                        savedItem.titleKey = initialItem.titleKey
+                    }
+                    onSave(savedItem, sectionTitle.trim(), httpProxy)
                 },
                 onDelete = {
                     if (initialItem != null) {
                         onDelete(initialItem)
                     }
                 },
-                deleteItemTitle = initialItem?.title
+                deleteItemTitle = initialItem?.getDisplayTitle(context)
             )
         }
     }
@@ -315,6 +326,8 @@ fun EditItemMainContent(
     offCmdChange: (String) -> Unit,
     processName: String,
     onProcessNameChange: (String) -> Unit,
+    httpProxy: String,
+    onHttpProxyChange: (String) -> Unit,
     stateCheckCmd: String,
     onStateCheckCmdChange: (String) -> Unit,
     summaryCmd: String,
@@ -338,12 +351,12 @@ fun EditItemMainContent(
                 scrollBehavior = scrollBehavior,
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(MiuixIcons.Back, contentDescription = "Back")
+                        Icon(MiuixIcons.Back, contentDescription = stringResource(R.string.action_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = onSave) {
-                        Icon(MiuixIcons.Ok, contentDescription = "Save")
+                        Icon(MiuixIcons.Ok, contentDescription = stringResource(R.string.btn_save))
                     }
                 }
             )
@@ -357,7 +370,7 @@ fun EditItemMainContent(
         ) {
             // General Info
             item(key = "header_general") {
-                SmallTitle(text = "General")
+                SmallTitle(text = stringResource(R.string.title_general))
             }
             item(key = "card_general") {
                 Card(
@@ -370,27 +383,27 @@ fun EditItemMainContent(
                         TextField(
                             value = title,
                             onValueChange = onTitleChange,
-                            label = "Title",
+                            label = stringResource(R.string.label_title),
                             modifier = Modifier.fillMaxWidth()
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         TextField(
                             value = sectionTitle,
                             onValueChange = onSectionTitleChange,
-                            label = "Section name",
+                            label = stringResource(R.string.label_section_name),
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
 
                     if (!isCore) {
-                        SmallTitle(text = "Control type")
+                        SmallTitle(text = stringResource(R.string.label_control_type))
                         RadioButtonPreference(
-                            title = "Switch",
+                            title = stringResource(R.string.label_switch),
                             selected = isSwitch,
                             onClick = { onSwitchChange(true) }
                         )
                         RadioButtonPreference(
-                            title = "Action Button",
+                            title = stringResource(R.string.label_action_button),
                             selected = !isSwitch,
                             onClick = { onSwitchChange(false) }
                         )
@@ -400,7 +413,7 @@ fun EditItemMainContent(
 
             // Icon Selection
             item(key = "header_icon") {
-                SmallTitle(text = "Icon")
+                SmallTitle(text = stringResource(R.string.hint_item_icon))
             }
             item(key = "card_icon") {
                 Card(
@@ -410,8 +423,8 @@ fun EditItemMainContent(
                         .padding(bottom = 12.dp)
                 ) {
                     ArrowPreference(
-                        title = "Selected Icon",
-                        summary = formatIconName(selectedIcon),
+                        title = stringResource(R.string.label_selected_icon),
+                        summary = stringResource(IconHelper.getLabelRes(selectedIcon)),
                         startAction = {
                             Icon(
                                 painter = painterResource(IconHelper.getDrawableRes(selectedIcon)),
@@ -425,7 +438,7 @@ fun EditItemMainContent(
 
             // Commands
             item(key = "header_commands") {
-                SmallTitle(text = "Commands")
+                SmallTitle(text = stringResource(R.string.title_commands))
             }
             item(key = "card_commands") {
                 Card(
@@ -439,7 +452,7 @@ fun EditItemMainContent(
                             TextField(
                                 value = onCmd,
                                 onValueChange = onCmdChange,
-                                label = "Start command",
+                                label = stringResource(R.string.label_start_cmd),
                                 singleLine = false,
                                 modifier = Modifier.fillMaxWidth()
                             )
@@ -447,7 +460,7 @@ fun EditItemMainContent(
                             TextField(
                                 value = offCmd,
                                 onValueChange = offCmdChange,
-                                label = "Stop command",
+                                label = stringResource(R.string.label_stop_cmd),
                                 singleLine = false,
                                 modifier = Modifier.fillMaxWidth()
                             )
@@ -455,15 +468,28 @@ fun EditItemMainContent(
                             TextField(
                                 value = processName,
                                 onValueChange = onProcessNameChange,
-                                label = "Process name (Default: xray)",
+                                label = stringResource(R.string.hint_process_name),
                                 modifier = Modifier.fillMaxWidth()
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            TextField(
+                                value = httpProxy,
+                                onValueChange = onHttpProxyChange,
+                                label = stringResource(R.string.label_proxy_address),
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Text(
+                                text = stringResource(R.string.hint_http_proxy_default),
+                                fontSize = 13.sp,
+                                color = MiuixTheme.colorScheme.onSurfaceSecondary
                             )
                         } else {
                             if (isSwitch) {
                                 TextField(
                                     value = onCmd,
                                     onValueChange = onCmdChange,
-                                    label = "On command",
+                                    label = stringResource(R.string.label_on_command),
                                     singleLine = false,
                                     modifier = Modifier.fillMaxWidth()
                                 )
@@ -471,7 +497,7 @@ fun EditItemMainContent(
                                 TextField(
                                     value = offCmd,
                                     onValueChange = offCmdChange,
-                                    label = "Off command",
+                                    label = stringResource(R.string.label_off_command),
                                     singleLine = false,
                                     modifier = Modifier.fillMaxWidth()
                                 )
@@ -479,7 +505,7 @@ fun EditItemMainContent(
                                 TextField(
                                     value = stateCheckCmd,
                                     onValueChange = onStateCheckCmdChange,
-                                    label = "State check command (Exit code 0 = Checked)",
+                                    label = stringResource(R.string.label_state_check),
                                     singleLine = false,
                                     modifier = Modifier.fillMaxWidth()
                                 )
@@ -487,7 +513,7 @@ fun EditItemMainContent(
                                 TextField(
                                     value = onCmd,
                                     onValueChange = onCmdChange,
-                                    label = "Action command",
+                                    label = stringResource(R.string.label_action_command),
                                     singleLine = false,
                                     modifier = Modifier.fillMaxWidth()
                                 )
@@ -497,7 +523,7 @@ fun EditItemMainContent(
                             TextField(
                                 value = summaryCmd,
                                 onValueChange = onSummaryCmdChange,
-                                label = "Dynamic summary command (Output = Subtitle)",
+                                label = stringResource(R.string.label_summary_command),
                                 singleLine = false,
                                 modifier = Modifier.fillMaxWidth()
                             )
@@ -505,7 +531,7 @@ fun EditItemMainContent(
                             TextField(
                                 value = disableConditionCmd,
                                 onValueChange = onDisableConditionCmdChange,
-                                label = "Disable condition command (Exit code 0 = Disabled)",
+                                label = stringResource(R.string.hint_disable_condition_command),
                                 singleLine = false,
                                 modifier = Modifier.fillMaxWidth()
                             )
@@ -517,7 +543,7 @@ fun EditItemMainContent(
             // Delete item button (only for existing custom items)
             if (isEditing && !isCore) {
                 item(key = "header_danger") {
-                    SmallTitle(text = "Danger Zone")
+                    SmallTitle(text = stringResource(R.string.title_danger_zone))
                 }
                 item(key = "card_delete") {
                     Card(
@@ -534,7 +560,7 @@ fun EditItemMainContent(
                                 contentAlignment = Alignment.Center
                             ) {
                                 TextButton(
-                                    text = "Delete item",
+                                    text = stringResource(R.string.action_delete_item),
                                     onClick = { showDeleteConfirm = true }
                                 )
                             }
@@ -546,7 +572,7 @@ fun EditItemMainContent(
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Text(
-                                    text = "Are you sure you want to delete '${deleteItemTitle ?: "this item"}'?",
+                                    text = stringResource(R.string.confirm_delete_item, deleteItemTitle ?: stringResource(R.string.label_this_item)),
                                     fontSize = 14.sp,
                                     color = MiuixTheme.colorScheme.onSurfaceSecondary,
                                     textAlign = TextAlign.Center
@@ -588,13 +614,17 @@ fun IconPickerSubScreen(
     val scrollBehavior = MiuixScrollBehavior()
     var searchQuery by remember { mutableStateOf("") }
 
-    val filteredIcons = remember(searchQuery) {
+    val resources = androidx.compose.ui.platform.LocalResources.current
+    val iconLabels = remember(resources) {
+        IconHelper.AVAILABLE_ICONS.associateWith { resources.getString(IconHelper.getLabelRes(it)) }
+    }
+    val filteredIcons = remember(searchQuery, iconLabels) {
         val q = searchQuery.trim().lowercase()
         if (q.isEmpty()) {
             IconHelper.AVAILABLE_ICONS.toList()
         } else {
             IconHelper.AVAILABLE_ICONS.filter { name ->
-                name.lowercase().contains(q) || formatIconName(name).lowercase().contains(q)
+                name.lowercase().contains(q) || iconLabels.getValue(name).lowercase().contains(q)
             }
         }
     }
@@ -603,12 +633,12 @@ fun IconPickerSubScreen(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
-                title = "Select icon",
-                largeTitle = "Select icon",
+                title = stringResource(R.string.title_select_icon),
+                largeTitle = stringResource(R.string.title_select_icon),
                 scrollBehavior = scrollBehavior,
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(MiuixIcons.Back, contentDescription = "Back")
+                        Icon(MiuixIcons.Back, contentDescription = stringResource(R.string.action_back))
                     }
                 }
             )
@@ -622,7 +652,7 @@ fun IconPickerSubScreen(
         ) {
             // Search Input
             item(key = "search_header") {
-                SmallTitle(text = "Search")
+                SmallTitle(text = stringResource(R.string.title_search))
             }
             item(key = "search_card") {
                 Card(
@@ -635,7 +665,7 @@ fun IconPickerSubScreen(
                         TextField(
                             value = searchQuery,
                             onValueChange = { searchQuery = it },
-                            label = "Search icons (e.g. shield, wifi, code)",
+                            label = stringResource(R.string.hint_search_icons),
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -644,7 +674,7 @@ fun IconPickerSubScreen(
 
             // Current Selection Preview
             item(key = "current_header") {
-                SmallTitle(text = "Current Selection")
+                SmallTitle(text = stringResource(R.string.title_current_selection))
             }
             item(key = "current_card") {
                 Card(
@@ -668,7 +698,7 @@ fun IconPickerSubScreen(
                         ) {
                             Icon(
                                 painter = painterResource(IconHelper.getDrawableRes(currentIcon)),
-                                contentDescription = currentIcon,
+                                contentDescription = iconLabels[currentIcon],
                                 modifier = Modifier.size(28.dp),
                                 tint = MiuixTheme.colorScheme.primary
                             )
@@ -676,13 +706,13 @@ fun IconPickerSubScreen(
                         Spacer(modifier = Modifier.width(16.dp))
                         Column {
                             Text(
-                                text = formatIconName(currentIcon),
+                                text = stringResource(IconHelper.getLabelRes(currentIcon)),
                                 fontSize = 16.sp,
                                 color = MiuixTheme.colorScheme.onSurface
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "Currently active icon",
+                                text = stringResource(R.string.desc_active_icon),
                                 fontSize = 13.sp,
                                 color = MiuixTheme.colorScheme.onSurfaceSecondary
                             )
@@ -693,7 +723,7 @@ fun IconPickerSubScreen(
 
             // Grid of Icons
             item(key = "icons_header") {
-                SmallTitle(text = "All Icons (${filteredIcons.size})")
+                SmallTitle(text = stringResource(R.string.title_all_icons, filteredIcons.size))
             }
             item(key = "icons_card") {
                 Card(
@@ -717,7 +747,7 @@ fun IconPickerSubScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = "No icons found",
+                                    text = stringResource(R.string.msg_no_icons),
                                     fontSize = 14.sp,
                                     color = MiuixTheme.colorScheme.onSurfaceSecondary
                                 )
@@ -750,13 +780,13 @@ fun IconPickerSubScreen(
                                             ) {
                                                 Icon(
                                                     painter = painterResource(IconHelper.getDrawableRes(iconName)),
-                                                    contentDescription = iconName,
+                                                    contentDescription = iconLabels[iconName],
                                                     modifier = Modifier.size(28.dp),
                                                     tint = if (isSelected) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.onSurface
                                                 )
                                                 Spacer(modifier = Modifier.height(6.dp))
                                                 Text(
-                                                    text = formatIconName(iconName),
+                                                    text = iconLabels.getValue(iconName),
                                                     fontSize = 11.sp,
                                                     maxLines = 1,
                                                     overflow = TextOverflow.Ellipsis,
@@ -777,10 +807,4 @@ fun IconPickerSubScreen(
             }
         }
     }
-}
-
-private fun formatIconName(name: String?): String {
-    if (name.isNullOrBlank()) return "Shield"
-    val clean = name.replace('_', ' ')
-    return clean.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
 }

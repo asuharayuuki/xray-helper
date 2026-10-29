@@ -16,10 +16,58 @@ public final class IconHelper {
 
     private IconHelper() {}
 
+    @androidx.annotation.StringRes
+    public static int getLabelRes(String iconName) {
+        if (iconName == null) return R.string.icon_shield;
+        switch (iconName.toLowerCase(java.util.Locale.ROOT)) {
+            case "shield": return R.string.icon_shield;
+            case "security": return R.string.icon_security;
+            case "power": return R.string.icon_power;
+            case "terminal": return R.string.icon_terminal;
+            case "code": return R.string.icon_code;
+            case "bug": return R.string.icon_bug;
+            case "build": return R.string.icon_build;
+            case "vpn_key": return R.string.icon_vpn_key;
+            case "wifi": return R.string.icon_wifi;
+            case "dns": return R.string.icon_dns;
+            case "globe": return R.string.icon_globe;
+            case "router": return R.string.icon_router;
+            case "cloud": return R.string.icon_cloud;
+            case "link": return R.string.icon_link;
+            case "speed": return R.string.icon_speed;
+            case "sync": return R.string.icon_sync;
+            case "download": return R.string.icon_download;
+            case "upload": return R.string.icon_upload;
+            case "storage": return R.string.icon_storage;
+            case "memory": return R.string.icon_memory;
+            case "lock": return R.string.icon_lock;
+            case "fingerprint": return R.string.icon_fingerprint;
+            case "visibility": return R.string.icon_visibility;
+            case "visibility_off": return R.string.icon_visibility_off;
+            case "tune": return R.string.icon_tune;
+            case "settings": return R.string.icon_settings;
+            case "refresh": return R.string.icon_refresh;
+            case "history": return R.string.icon_history;
+            case "timer": return R.string.icon_timer;
+            case "analytics": return R.string.icon_analytics;
+            case "folder": return R.string.icon_folder;
+            case "bell": return R.string.icon_bell;
+            case "airplane": return R.string.icon_airplane;
+            case "rocket": return R.string.icon_rocket;
+            case "star": return R.string.icon_star;
+            case "heart": return R.string.icon_heart;
+            case "android": return R.string.icon_android;
+            case "coffee": return R.string.icon_coffee;
+            case "mic": return R.string.icon_mic;
+            case "check": return R.string.icon_check;
+            default: return R.string.icon_shield;
+        }
+    }
+
     @DrawableRes
     public static int getDrawableRes(String iconName) {
         if (iconName == null) return R.drawable.ic_shield;
-        switch (iconName.toLowerCase()) {
+        switch (iconName.toLowerCase(java.util.Locale.ROOT)) {
             case "power":
                 return R.drawable.ic_power;
             case "bug":

@@ -1,20 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Xray</string>
-    <string name="tile_label_normal">Xray</string>
+    <string name="app_name" translatable="false">Xray</string>
+    <string name="tile_label_normal" translatable="false">Xray</string>
     <string name="tile_label_exited">Xray Exited</string>
-    <string name="state_on">On</string>
-    <string name="state_off">Off</string>
+    <string name="xray_state_on">On</string>
+    <string name="xray_state_off">Off</string>
     <string name="state_exited">Exited</string>
     <string name="state_error">Error</string>
-
-    <!-- Core 4-State Summaries (Requirement: No PID, standard commas) -->
     <string name="state_core_on">Running, proxy active</string>
     <string name="state_core_running_proxy_off">Running, proxy disabled</string>
     <string name="state_core_exited">Stopped, proxy active</string>
     <string name="state_core_off">Stopped, proxy disabled</string>
     <string name="state_core_error">Error checking state</string>
     <string name="state_root_denied">Root permission denied</string>
-
     <string name="btn_save">Save</string>
     <string name="btn_cancel">Cancel</string>
     <string name="btn_delete">Delete</string>
@@ -22,34 +20,25 @@
     <string name="btn_add_item">Add Item</string>
     <string name="btn_reset_defaults">Reset to Defaults</string>
     <string name="btn_refresh">Refresh</string>
-
-    <!-- Caffeine Strings -->
-    <string name="caffeine_tile_label">Caffeine</string>
+    <string name="caffeine_tile_label" translatable="false">Caffeine</string>
     <string name="caffeine_off">Off</string>
     <string name="caffeine_infinite">Infinite</string>
-
-    <!-- Record Strings -->
     <string name="record_tile_label">Record</string>
-
-    <!-- Settings Screen -->
     <string name="title_settings">Settings</string>
     <string name="title_xray_commands">Xray Core Commands</string>
     <string name="desc_xray_commands">Default root commands used for starting, stopping, and verifying the Xray core.</string>
-    <string name="label_start_cmd">Start Command</string>
-    <string name="label_stop_cmd">Stop Command</string>
+    <string name="label_start_cmd">Start command</string>
+    <string name="label_stop_cmd">Stop command</string>
     <string name="label_proxy_address">HTTP Proxy Address</string>
     <string name="label_process_name">Process Name</string>
     <string name="msg_commands_saved">Settings saved</string>
     <string name="msg_defaults_restored">Defaults restored</string>
-
     <string name="title_dashboard_layout">Dashboard Layout</string>
     <string name="desc_dashboard_layout">Organize sections and items displayed on the main screen.</string>
-
-    <!-- Dialogs -->
     <string name="dialog_title_add_section">Add Section</string>
     <string name="dialog_title_edit_section">Edit Section</string>
     <string name="dialog_title_add_item">Add Item</string>
-    <string name="dialog_title_edit_item">Edit Item</string>
+    <string name="dialog_title_edit_item">Edit item</string>
     <string name="hint_section_title">Section Title (e.g. Proxy, Actions)</string>
     <string name="hint_item_title">Item Title</string>
     <string name="hint_item_type">Item Type</string>
@@ -60,6 +49,104 @@
     <string name="hint_off_command">Off Command (Switch only)</string>
     <string name="hint_state_check_command">State Check Command (Exit 0 = On)</string>
     <string name="hint_summary_command">Description Command (Stdout shown as subtitle)</string>
-    <string name="hint_disable_condition_command">Disable Condition Command (Exit 0 = Disabled)</string>
+    <string name="hint_disable_condition_command">Disable condition command (Exit code 0 = Disabled)</string>
     <string name="error_name_empty">Title cannot be empty</string>
+    <string name="action_back">Back</string>
+    <string name="title_dashboard_items">Dashboard items</string>
+    <string name="type_core_switch">Core switch</string>
+    <string name="label_switch">Switch</string>
+    <string name="label_button">Button</string>
+    <string name="title_add_new_item">Add new item</string>
+    <string name="desc_add_new_item">Create custom switch or action button</string>
+    <string name="title_reset">Reset</string>
+    <string name="desc_reset_defaults">Restore default commands and dashboard layout</string>
+    <string name="confirm_reset">Reset all Xray commands and dashboard layout to defaults?</string>
+    <string name="msg_core_saved">Core settings saved</string>
+    <string name="msg_item_saved">Item saved</string>
+    <string name="msg_item_deleted">Item deleted</string>
+    <string name="title_edit_core">Edit Core</string>
+    <string name="title_new_item">New item</string>
+    <string name="title_general">General</string>
+    <string name="label_title">Title</string>
+    <string name="label_section_name">Section name</string>
+    <string name="label_control_type">Control type</string>
+    <string name="label_action_button">Action Button</string>
+    <string name="label_selected_icon">Selected Icon</string>
+    <string name="title_commands">Commands</string>
+    <string name="hint_process_name">Process name (Default: xray)</string>
+    <string name="label_on_command">On command</string>
+    <string name="label_off_command">Off command</string>
+    <string name="label_state_check">State check command (Exit code 0 = Checked)</string>
+    <string name="label_action_command">Action command</string>
+    <string name="label_summary_command">Dynamic summary command (Output = Subtitle)</string>
+    <string name="title_danger_zone">Danger Zone</string>
+    <string name="action_delete_item">Delete item</string>
+    <string name="confirm_delete_item">Delete “%1$s”?</string>
+    <string name="label_this_item">this item</string>
+    <string name="title_select_icon">Select icon</string>
+    <string name="title_search">Search</string>
+    <string name="hint_search_icons">Search icons (e.g. shield, wifi, code)</string>
+    <string name="title_current_selection">Current Selection</string>
+    <string name="desc_active_icon">Currently active icon</string>
+    <string name="title_all_icons">All Icons (%1$d)</string>
+    <string name="msg_no_icons">No icons found</string>
+    <string name="default_section_proxy">Proxy</string>
+    <string name="default_section_actions">Actions</string>
+    <string name="default_item_core">Core</string>
+    <string name="default_item_disable_debugging">Disable Debugging</string>
+    <string name="icon_shield">Shield</string>
+    <string name="icon_security">Security</string>
+    <string name="icon_power">Power</string>
+    <string name="icon_terminal">Terminal</string>
+    <string name="icon_code">Code</string>
+    <string name="icon_bug">Bug</string>
+    <string name="icon_build">Build</string>
+    <string name="icon_vpn_key">VPN key</string>
+    <string name="icon_wifi">Wi-Fi</string>
+    <string name="icon_dns">DNS</string>
+    <string name="icon_globe">Globe</string>
+    <string name="icon_router">Router</string>
+    <string name="icon_cloud">Cloud</string>
+    <string name="icon_link">Link</string>
+    <string name="icon_speed">Speed</string>
+    <string name="icon_sync">Sync</string>
+    <string name="icon_download">Download</string>
+    <string name="icon_upload">Upload</string>
+    <string name="icon_storage">Storage</string>
+    <string name="icon_memory">Memory</string>
+    <string name="icon_lock">Lock</string>
+    <string name="icon_fingerprint">Fingerprint</string>
+    <string name="icon_visibility">Visible</string>
+    <string name="icon_visibility_off">Hidden</string>
+    <string name="icon_tune">Tune</string>
+    <string name="icon_settings">Settings</string>
+    <string name="icon_refresh">Refresh</string>
+    <string name="icon_history">History</string>
+    <string name="icon_timer">Timer</string>
+    <string name="icon_analytics">Analytics</string>
+    <string name="icon_folder">Folder</string>
+    <string name="icon_bell">Bell</string>
+    <string name="icon_airplane">Airplane</string>
+    <string name="icon_rocket">Rocket</string>
+    <string name="icon_star">Star</string>
+    <string name="icon_heart">Heart</string>
+    <string name="icon_android">Android</string>
+    <string name="icon_coffee">Coffee</string>
+    <string name="icon_mic">Microphone</string>
+    <string name="icon_check">Check</string>
+    <string name="title_config_transfer">Configuration</string>
+    <string name="action_import_config">Import configuration</string>
+    <string name="action_export_config">Export configuration</string>
+    <string name="desc_import_config">Choose a configuration file with the system file picker</string>
+    <string name="desc_export_config">Share all settings and dashboard items as a JSON file</string>
+    <string name="confirm_import_config">Replace all current settings and dashboard items? Imported commands run when their controls or state checks are used.</string>
+    <string name="msg_import_invalid">Cannot read this configuration. Select a valid Xray configuration JSON file (up to 1 MiB).</string>
+    <string name="msg_import_success">Configuration imported</string>
+    <string name="msg_import_failed">Unable to save the imported configuration</string>
+    <string name="msg_export_failed">Unable to export or share the configuration</string>
+    <string name="msg_picker_unavailable">No system file picker is available</string>
+    <string name="msg_command_timeout">Command timed out</string>
+    <string name="msg_command_failed">Command failed (exit code %1$d)</string>
+    <string name="msg_command_error">Unable to execute command</string>
+    <string name="hint_http_proxy_default">Host:port, e.g. 127.0.0.1:2080. Leave empty to restore the default.</string>
 </resources>

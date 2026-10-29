@@ -29,10 +29,6 @@ import top.yukonga.miuix.kmp.icon.extended.Refresh
 import top.yukonga.miuix.kmp.icon.extended.Settings
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference
-import java.io.BufferedReader
-import java.io.InputStreamReader
-import java.nio.charset.StandardCharsets
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
 
@@ -128,6 +124,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleSwitchToggle(item: DashboardItem, targetState: Boolean) {
+        if (isBusy.value) return
         if (item.isCore) {
             isBusy.value = true
             thread(name = "Core-Toggle") {
@@ -174,6 +171,7 @@ class MainActivity : ComponentActivity() {
 
                 val coreSummaryText: String = when {
                     !coreStatus.isRootGranted -> getString(R.string.state_root_denied)
+                    coreStatus.state == RootShell.State.ERROR -> getString(R.string.state_core_error)
                     isCoreRunning && isProxyActive -> getString(R.string.state_core_on)
                     isCoreRunning -> getString(R.string.state_core_running_proxy_off)
                     isProxyActive -> getString(R.string.state_core_exited)
@@ -241,99 +239,37 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun executeCheckExitCode(command: String): Int {
-        var process: Process? = null
-        return try {
-            process = buildShellProcess(command)
-                .redirectErrorStream(true)
-                .start()
-            val finished = process.waitFor(3, TimeUnit.SECONDS)
-            if (!finished) {
-                process.destroyForcibly()
-                1
-            } else {
-                process.exitValue()
-            }
-        } catch (e: Exception) {
-            process?.destroyForcibly()
-            1
-        }
-    }
+    private fun executeCheckExitCode(command: String): Int = try {
+        CommandRunner.run(buildShellProcess(command), 3000, 0).exitCode
+    } catch (e: Exception) { -1 }
 
-    private fun executeGetOutput(command: String): String {
-        var process: Process? = null
-        return try {
-            process = buildShellProcess(command)
-                .redirectErrorStream(true)
-                .start()
-
-            val sb = StringBuilder()
-            BufferedReader(InputStreamReader(process.inputStream, StandardCharsets.UTF_8)).use { reader ->
-                var line: String?
-                while (reader.readLine().also { line = it } != null) {
-                    if (sb.isNotEmpty()) sb.append(" ")
-                    sb.append(line!!.trim())
-                    if (sb.length > 100) break
-                }
-            }
-
-            val finished = process.waitFor(3, TimeUnit.SECONDS)
-            if (!finished) {
-                process.destroyForcibly()
-            }
-            sb.toString().trim()
-        } catch (e: Exception) {
-            process?.destroyForcibly()
-            ""
-        }
-    }
+    private fun executeGetOutput(command: String): String = try {
+        val result = CommandRunner.run(buildShellProcess(command), 3000, 200)
+        if (result.timedOut) "" else result.output.trim().replace('\n', ' ')
+    } catch (e: Exception) { "" }
 
     private fun executeCommandAsync(command: String?, onComplete: (() -> Unit)? = null) {
         if (command.isNullOrBlank()) {
             onComplete?.invoke()
             return
         }
-
+        if (isBusy.value) return
         isBusy.value = true
-
         thread(name = "CustomAction-Executor") {
-            var process: Process? = null
             try {
-                process = buildShellProcess(command)
-                    .redirectErrorStream(true)
-                    .start()
-
-                val sb = StringBuilder()
-                BufferedReader(InputStreamReader(process.inputStream, StandardCharsets.UTF_8)).use { reader ->
-                    var line: String?
-                    while (reader.readLine().also { line = it } != null) {
-                        if (sb.isNotEmpty()) sb.append("\n")
-                        sb.append(line)
-                        if (sb.length > 2000) break
+                val result = CommandRunner.run(buildShellProcess(command), 10000, 2000)
+                runOnUiThread {
+                    val message = when {
+                        result.timedOut -> getString(R.string.msg_command_timeout)
+                        result.output.isNotBlank() -> result.output.trim().take(200)
+                        result.exitCode != 0 -> getString(R.string.msg_command_failed, result.exitCode)
+                        else -> null
                     }
-                }
-
-                val finished = process.waitFor(10, TimeUnit.SECONDS)
-                if (!finished) {
-                    process.destroyForcibly()
-                }
-
-                var output = sb.toString().trim()
-                if (output.isNotEmpty()) {
-                    if (output.length > 200) output = output.substring(0, 200)
-                    val display = output
-                    runOnUiThread {
-                        Toast.makeText(this@MainActivity, display, Toast.LENGTH_LONG).show()
-                    }
+                    if (message != null) Toast.makeText(this, message, Toast.LENGTH_LONG).show()
                 }
             } catch (e: Exception) {
-                process?.destroyForcibly()
-                val err = e.message
-                if (!err.isNullOrBlank()) {
-                    val display = if (err.length > 200) err.substring(0, 200).trim() else err.trim()
-                    runOnUiThread {
-                        Toast.makeText(this@MainActivity, display, Toast.LENGTH_LONG).show()
-                    }
+                runOnUiThread {
+                    Toast.makeText(this, R.string.msg_command_error, Toast.LENGTH_LONG).show()
                 }
             } finally {
                 runOnUiThread {
@@ -368,6 +304,7 @@ fun MainScreen(
     onToggleSwitch: (DashboardItem, Boolean) -> Unit,
     onButtonClick: (DashboardItem) -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val scrollBehavior = MiuixScrollBehavior()
 
     Scaffold(
@@ -380,10 +317,10 @@ fun MainScreen(
                     scrollBehavior = scrollBehavior,
                     actions = {
                         IconButton(onClick = onRefresh) {
-                            Icon(MiuixIcons.Refresh, contentDescription = "Refresh")
+                            Icon(MiuixIcons.Refresh, contentDescription = stringResource(R.string.btn_refresh))
                         }
                         IconButton(onClick = onOpenSettings) {
-                            Icon(MiuixIcons.Settings, contentDescription = "Settings")
+                            Icon(MiuixIcons.Settings, contentDescription = stringResource(R.string.title_settings))
                         }
                     }
                 )
@@ -402,7 +339,7 @@ fun MainScreen(
             sections.forEach { section ->
                 if (section.items.isNotEmpty()) {
                     item(key = "header_${section.id}") {
-                        SmallTitle(text = section.title)
+                        SmallTitle(text = section.getDisplayTitle(context))
                     }
                     item(key = "card_${section.id}") {
                         Card(
@@ -428,18 +365,18 @@ fun MainScreen(
 
                                 if (isSwitch) {
                                     SwitchPreference(
-                                        title = item.title,
+                                        title = item.getDisplayTitle(context),
                                         summary = if (!summary.isNullOrBlank()) summary else null,
                                         checked = isChecked,
                                         onCheckedChange = { nextState ->
                                             onToggleSwitch(item, nextState)
                                         },
                                         startAction = startAction,
-                                        enabled = !isDisabled
+                                        enabled = !isDisabled && !isBusy
                                     )
                                 } else {
                                     ArrowPreference(
-                                        title = item.title,
+                                        title = item.getDisplayTitle(context),
                                         summary = if (!summary.isNullOrBlank()) summary else null,
                                         onClick = {
                                             if (!isDisabled) {
@@ -447,7 +384,7 @@ fun MainScreen(
                                             }
                                         },
                                         startAction = startAction,
-                                        enabled = !isDisabled
+                                        enabled = !isDisabled && !isBusy
                                     )
                                 }
                             }

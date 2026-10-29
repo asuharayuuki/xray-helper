@@ -2,6 +2,7 @@ package org.eu.suisei.xray;
 
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.res.Configuration;
 import android.os.Handler;
 import android.os.Looper;
 import android.service.quicksettings.Tile;
@@ -18,6 +19,7 @@ public class XrayTileService extends TileService {
     private static final AtomicBoolean busy = new AtomicBoolean(false);
     private static final AtomicBoolean initialized = new AtomicBoolean(false);
     private static final AtomicBoolean forceRefresh = new AtomicBoolean(false);
+    private static volatile RootShell.Result lastResult;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     /**
@@ -42,9 +44,13 @@ public class XrayTileService extends TileService {
     @Override
     public void onStartListening() {
         super.onStartListening();
+        // Re-render cached state with the current language without another root query.
+        if (lastResult != null) applyTileState(lastResult);
         // Active Tile: Only perform root query upon explicit initial sync or forced refresh request
-        if (initialized.compareAndSet(false, true) || forceRefresh.compareAndSet(true, false)) {
+        if (!initialized.get() || forceRefresh.get()) {
             if (busy.compareAndSet(false, true)) {
+                initialized.set(true);
+                forceRefresh.set(false);
                 new Thread(() -> {
                     try {
                         RootShell.Result result = RootShell.queryState(XrayTileService.this);
@@ -53,10 +59,17 @@ public class XrayTileService extends TileService {
                         applyTileState(new RootShell.Result(RootShell.ActionResult.ERROR, RootShell.State.ERROR));
                     } finally {
                         busy.set(false);
+                        if (forceRefresh.get()) requestRefresh(XrayTileService.this);
                     }
                 }, "Xray-SyncQuery").start();
             }
         }
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        if (lastResult != null) applyTileState(lastResult);
     }
 
     @Override
@@ -102,11 +115,13 @@ public class XrayTileService extends TileService {
                 applyTileState(new RootShell.Result(RootShell.ActionResult.ERROR, RootShell.State.ERROR));
             } finally {
                 busy.set(false);
+                if (forceRefresh.get()) requestRefresh(XrayTileService.this);
             }
         }, "Xray-Toggle").start();
     }
 
     private void applyTileState(RootShell.Result result) {
+        lastResult = result;
         mainHandler.post(() -> {
             Tile tile = getQsTile();
             if (tile == null) {
@@ -122,9 +137,9 @@ public class XrayTileService extends TileService {
                 switch (result.state) {
                     case ON:
                         tile.setLabel(getString(R.string.tile_label_normal));
-                        tile.setSubtitle(getString(R.string.state_on));
+                        tile.setSubtitle(getString(R.string.xray_state_on));
                         tile.setState(Tile.STATE_ACTIVE);
-                        tile.setStateDescription(getString(R.string.state_on));
+                        tile.setStateDescription(getString(R.string.xray_state_on));
                         break;
                     case EXITED:
                         tile.setLabel(getString(R.string.tile_label_exited));
@@ -134,9 +149,9 @@ public class XrayTileService extends TileService {
                         break;
                     case OFF:
                         tile.setLabel(getString(R.string.tile_label_normal));
-                        tile.setSubtitle(getString(R.string.state_off));
+                        tile.setSubtitle(getString(R.string.xray_state_off));
                         tile.setState(Tile.STATE_INACTIVE);
-                        tile.setStateDescription(getString(R.string.state_off));
+                        tile.setStateDescription(getString(R.string.xray_state_off));
                         break;
                     case ERROR:
                     default:
