@@ -19,6 +19,8 @@
     <string name="btn_reset_defaults">恢复默认设置</string>
     <string name="btn_refresh">刷新</string>
     <string name="caffeine_off">关闭</string>
+    <string name="caffeine_start_failed">无法启动 Caffeine，请检查后台活动权限。</string>
+    <string name="caffeine_root_required">三星设备上的 Caffeine 需要 Root 权限，以临时调整自动熄屏时间。</string>
     <string name="caffeine_infinite">无限时长</string>
     <string name="record_tile_label">录音</string>
     <string name="title_settings">设置</string>

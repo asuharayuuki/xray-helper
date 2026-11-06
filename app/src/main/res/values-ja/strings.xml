@@ -19,6 +19,8 @@
     <string name="btn_reset_defaults">初期設定に戻す</string>
     <string name="btn_refresh">更新</string>
     <string name="caffeine_off">オフ</string>
+    <string name="caffeine_start_failed">Caffeine を開始できません。バックグラウンド動作の権限を確認してください。</string>
+    <string name="caffeine_root_required">Samsung 端末では、画面消灯時間を一時的に変更するために Root 権限が必要です。</string>
     <string name="caffeine_infinite">無制限</string>
     <string name="record_tile_label">レコーダー</string>
     <string name="title_settings">設定</string>

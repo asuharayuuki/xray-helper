@@ -22,6 +22,8 @@
     <string name="btn_refresh">Refresh</string>
     <string name="caffeine_tile_label" translatable="false">Caffeine</string>
     <string name="caffeine_off">Off</string>
+    <string name="caffeine_start_failed">Could not start Caffeine. Check background activity permissions.</string>
+    <string name="caffeine_root_required">Caffeine on Samsung requires root permission to temporarily change the screen timeout.</string>
     <string name="caffeine_infinite">Infinite</string>
     <string name="record_tile_label">Record</string>
     <string name="title_settings">Settings</string>

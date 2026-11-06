@@ -51,6 +51,7 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        CaffeineTimeout.recover(this)
 
         setContent {
             MiuixAppTheme {

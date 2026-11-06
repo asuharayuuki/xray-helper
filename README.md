@@ -55,13 +55,15 @@ Validation: `python tools/check_localization.py`, `./gradlew testDebugUnitTest a
 
 ### 5. Auxiliary Quick Settings Tiles
 - **Caffeine Tile**:
+  - Samsung compatibility: temporarily extends `screen_off_timeout` using Root because Samsung may disable background screen WakeLocks as abusive even for foreground services. Root denial stops Caffeine with an explanation.
+  - Restores the original timeout on stop, expiry, screen-off, or service destruction. A persisted backup also recovers after an interrupted session when the app or Caffeine next opens, or after boot; user changes to the timeout are preserved. If the process is forcibly killed, restoration waits for one of these recovery points (finite sessions also have a bounded system timeout).
   - Cycles screen awake timeout: `Off` → `5m` → `10m` → `30m` → `Infinite` → `Off`.
   - Battery optimization: automatically releases `WakeLock` and shuts down the service immediately when the screen is turned off.
 - **Record Tile**:
   - Instant one-tap shortcut to trigger voice recording (Samsung Voice Recorder or generic audio capture) with root shell fallback.
 
 ### 6. Zero Overhead & Battery-First Architecture
-- **No Background Services**: No daemons, persistent polling threads, or broadcast receivers running in the background.
+- **No Idle Background Services**: Caffeine runs a foreground service only during an active session. Its boot receiver restores an interrupted timeout override and then exits; no idle polling is used.
 - **Single-Transaction Root Execution**: Minimizes `su` invocation overhead by executing batch status checks and state toggles in a single execution pipe.
 
 ---

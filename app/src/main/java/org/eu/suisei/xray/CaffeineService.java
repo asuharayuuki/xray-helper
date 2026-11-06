@@ -15,8 +15,12 @@ import android.os.Binder;
 import android.os.Build;
 import android.os.CountDownTimer;
 import android.os.IBinder;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.PowerManager;
 import android.service.quicksettings.TileService;
+import android.util.Log;
+import android.widget.Toast;
 
 import androidx.core.app.NotificationCompat;
 
@@ -47,7 +51,7 @@ public class CaffeineService extends Service {
         void onExpire();
     }
 
-    private static CaffeineService sInstance;
+    private static volatile CaffeineService sInstance;
 
     public static CaffeineService getInstance() {
         return sInstance;
@@ -60,6 +64,8 @@ public class CaffeineService extends Service {
     private int remainingSeconds = 0;
     private Callback callback;
     private BroadcastReceiver screenOffReceiver;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private int generation;
 
     public class LocalBinder extends Binder {
         public CaffeineService getService() {
@@ -71,6 +77,7 @@ public class CaffeineService extends Service {
     public void onCreate() {
         super.onCreate();
         sInstance = this;
+        CaffeineTimeout.WORKER.execute(() -> CaffeineTimeout.restore(getApplicationContext()));
 
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
         if (pm != null) {
@@ -211,14 +218,6 @@ public class CaffeineService extends Service {
         durationSeconds = seconds;
         remainingSeconds = seconds;
 
-        // Reacquire when changing duration so the system timeout matches the new selection.
-        if (wakeLock.isHeld()) wakeLock.release();
-        if (seconds == Integer.MAX_VALUE) {
-            acquireUntilScreenOff();
-        } else {
-            wakeLock.acquire((seconds + 5L) * 1000L);
-        }
-
         // Show foreground notification to prevent being killed by system
         Notification notification = buildNotification(seconds);
         try {
@@ -227,11 +226,35 @@ public class CaffeineService extends Service {
             } else {
                 startForeground(NOTIFICATION_ID, notification);
             }
-        } catch (Throwable e) {
-            try {
-                startForeground(NOTIFICATION_ID, notification);
-            } catch (Throwable ignored) {
-            }
+        } catch (RuntimeException e) {
+            Log.e("CaffeineService", "Unable to start foreground service", e);
+            stopCaffeine();
+            Toast.makeText(this, R.string.caffeine_start_failed, Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        // Promote the service before acquiring the screen lock.
+        if (wakeLock.isHeld()) wakeLock.release();
+        if (seconds == Integer.MAX_VALUE) {
+            acquireUntilScreenOff();
+        } else {
+            wakeLock.acquire((seconds + 5L) * 1000L);
+        }
+
+        final int request = ++generation;
+        if (CaffeineTimeout.isRequired()) {
+            CaffeineTimeout.WORKER.execute(() -> {
+                try {
+                    CaffeineTimeout.create(getApplicationContext()).apply(seconds);
+                } catch (Exception e) {
+                    Log.e("CaffeineService", "Unable to apply Samsung screen timeout", e);
+                    mainHandler.post(() -> {
+                        if (request != generation) return;
+                        stopCaffeine();
+                        Toast.makeText(this, R.string.caffeine_root_required, Toast.LENGTH_LONG).show();
+                    });
+                }
+            });
         }
 
         if (seconds == Integer.MAX_VALUE) {
@@ -261,6 +284,8 @@ public class CaffeineService extends Service {
     }
 
     public void stopCaffeine() {
+        generation++;
+        CaffeineTimeout.WORKER.execute(() -> CaffeineTimeout.restore(getApplicationContext()));
         if (countDownTimer != null) {
             countDownTimer.cancel();
             countDownTimer = null;
@@ -303,6 +328,8 @@ public class CaffeineService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        generation++;
+        CaffeineTimeout.WORKER.execute(() -> CaffeineTimeout.restore(getApplicationContext()));
         if (countDownTimer != null) {
             countDownTimer.cancel();
             countDownTimer = null;
