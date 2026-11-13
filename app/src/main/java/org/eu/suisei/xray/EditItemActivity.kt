@@ -7,22 +7,15 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.*
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.eu.suisei.xray.ui.MiuixAppTheme
@@ -424,10 +417,10 @@ fun EditItemMainContent(
                 ) {
                     ArrowPreference(
                         title = stringResource(R.string.label_selected_icon),
-                        summary = stringResource(IconHelper.getLabelRes(selectedIcon)),
+                        summary = dashboardIconLabel(selectedIcon),
                         startAction = {
-                            Icon(
-                                painter = painterResource(IconHelper.getDrawableRes(selectedIcon)),
+                            DashboardIcon(
+                                id = selectedIcon,
                                 contentDescription = null
                             )
                         },
@@ -594,210 +587,6 @@ fun EditItemMainContent(
                                         }
                                     ) {
                                         Text(stringResource(R.string.btn_delete))
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun IconPickerSubScreen(
-    currentIcon: String,
-    onSelectIcon: (String) -> Unit,
-    onBack: () -> Unit
-) {
-    val scrollBehavior = MiuixScrollBehavior()
-    var searchQuery by remember { mutableStateOf("") }
-
-    val resources = androidx.compose.ui.platform.LocalResources.current
-    val iconLabels = remember(resources) {
-        IconHelper.AVAILABLE_ICONS.associateWith { resources.getString(IconHelper.getLabelRes(it)) }
-    }
-    val filteredIcons = remember(searchQuery, iconLabels) {
-        val q = searchQuery.trim().lowercase()
-        if (q.isEmpty()) {
-            IconHelper.AVAILABLE_ICONS.toList()
-        } else {
-            IconHelper.AVAILABLE_ICONS.filter { name ->
-                name.lowercase().contains(q) || iconLabels.getValue(name).lowercase().contains(q)
-            }
-        }
-    }
-
-    Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        topBar = {
-            TopAppBar(
-                title = stringResource(R.string.title_select_icon),
-                largeTitle = stringResource(R.string.title_select_icon),
-                scrollBehavior = scrollBehavior,
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(MiuixIcons.Back, contentDescription = stringResource(R.string.action_back))
-                    }
-                }
-            )
-        }
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-            contentPadding = PaddingValues(bottom = 48.dp)
-        ) {
-            // Search Input
-            item(key = "search_header") {
-                SmallTitle(text = stringResource(R.string.title_search))
-            }
-            item(key = "search_card") {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp)
-                        .padding(bottom = 12.dp)
-                ) {
-                    Box(modifier = Modifier.padding(16.dp)) {
-                        TextField(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
-                            label = stringResource(R.string.hint_search_icons),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                }
-            }
-
-            // Current Selection Preview
-            item(key = "current_header") {
-                SmallTitle(text = stringResource(R.string.title_current_selection))
-            }
-            item(key = "current_card") {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp)
-                        .padding(bottom = 12.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(MiuixTheme.colorScheme.primaryContainer),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                painter = painterResource(IconHelper.getDrawableRes(currentIcon)),
-                                contentDescription = iconLabels[currentIcon],
-                                modifier = Modifier.size(28.dp),
-                                tint = MiuixTheme.colorScheme.primary
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column {
-                            Text(
-                                text = stringResource(IconHelper.getLabelRes(currentIcon)),
-                                fontSize = 16.sp,
-                                color = MiuixTheme.colorScheme.onSurface
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = stringResource(R.string.desc_active_icon),
-                                fontSize = 13.sp,
-                                color = MiuixTheme.colorScheme.onSurfaceSecondary
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Grid of Icons
-            item(key = "icons_header") {
-                SmallTitle(text = stringResource(R.string.title_all_icons, filteredIcons.size))
-            }
-            item(key = "icons_card") {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp)
-                        .padding(bottom = 12.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        val iconRows = remember(filteredIcons) { filteredIcons.chunked(4) }
-                        if (iconRows.isEmpty()) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 24.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.msg_no_icons),
-                                    fontSize = 14.sp,
-                                    color = MiuixTheme.colorScheme.onSurfaceSecondary
-                                )
-                            }
-                        } else {
-                            iconRows.forEach { rowIcons ->
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    rowIcons.forEach { iconName ->
-                                        val isSelected = iconName.equals(currentIcon, ignoreCase = true)
-                                        val bg = if (isSelected) MiuixTheme.colorScheme.primaryContainer else MiuixTheme.colorScheme.surfaceContainer
-                                        val border = if (isSelected) BorderStroke(1.5.dp, MiuixTheme.colorScheme.primary) else null
-
-                                        Box(
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .clip(RoundedCornerShape(12.dp))
-                                                .then(if (border != null) Modifier.border(border, RoundedCornerShape(12.dp)) else Modifier)
-                                                .background(bg)
-                                                .clickable {
-                                                    onSelectIcon(iconName)
-                                                }
-                                                .padding(vertical = 12.dp, horizontal = 4.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Column(
-                                                horizontalAlignment = Alignment.CenterHorizontally
-                                            ) {
-                                                Icon(
-                                                    painter = painterResource(IconHelper.getDrawableRes(iconName)),
-                                                    contentDescription = iconLabels[iconName],
-                                                    modifier = Modifier.size(28.dp),
-                                                    tint = if (isSelected) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.onSurface
-                                                )
-                                                Spacer(modifier = Modifier.height(6.dp))
-                                                Text(
-                                                    text = iconLabels.getValue(iconName),
-                                                    fontSize = 11.sp,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis,
-                                                    textAlign = TextAlign.Center,
-                                                    color = if (isSelected) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.onSurface
-                                                )
-                                            }
-                                        }
-                                    }
-                                    repeat(4 - rowIcons.size) {
-                                        Spacer(modifier = Modifier.weight(1f))
                                     }
                                 }
                             }

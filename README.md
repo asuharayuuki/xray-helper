@@ -35,13 +35,13 @@ Validation: `python tools/check_localization.py`, `./gradlew testDebugUnitTest a
   - **Action Button**: One-tap execution of root commands with output notifications via system Toasts.
 - **Dynamic Command Output Summaries**: Subtitle descriptions dynamically fetch stdout from commands (e.g. status or output). When output is empty or whitespace, description views automatically hide.
 - **Exit Code Disable Conditions**: Automatically disable and dim any button or switch when a specified verification command evaluates to true (exit code 0).
-- **Official Google Material Icons**: Integrated visual grid icon picker with 40+ official icons from [google/material-design-icons](https://github.com/google/material-design-icons) (`shield`, `terminal`, `dns`, `globe`, `router`, `speed`, `fingerprint`, `code`, `storage`, `tune`, and more).
+- **Google icon library**: The dashboard and Record tile share a searchable offline picker with all 4,304 Material Symbols names and the five classic Material Icons catalogs from [Google](https://github.com/google/material-design-icons/tree/10ecc14790612ca8fd164e3f4ffe9c16fc50d5b7). Material Symbols include Outlined, Rounded, and Sharp, each with a filled variant. The Xray built-in collection preserves the original icons and saved IDs.
 
 ### 3. Dedicated Full-Page Item Editor (`EditItemActivity`)
 - Completely eliminates cramped multi-layer dialogs and box-in-box nesting.
 - **Spacious Command Inputs**: All command text fields support multi-line scripts with **unlimited vertical height** (no restrictive line limits).
 - **Core Integration**: Direct access to Core start/stop commands, process name, and the HTTP proxy address (`host:port`). Leaving the proxy address empty restores `127.0.0.1:2080`; custom addresses are included in configuration imports and exports.
-- **Visual Icon Picker Dialog**: Instant 4-column `WindowDialog` grid selector with clear English labels and selection highlights.
+- **Visual icon picker**: Full-page grid with style selection, name search, and a preview of the current icon. Library icon names follow Google's catalog.
 - **Save & Delete**: Save via the top-right checkmark icon (`MiuixIcons.Ok`), with dedicated destructive actions for custom items.
 
 ### 4. Smart Core State Synchronization
@@ -90,6 +90,10 @@ app/build/outputs/apk/release/app-release.apk
 A ready-to-install release build is also maintained in the project root as `Xray-release.apk`.
 
 ---
+
+### Updating the Google icon library
+
+Set the upstream revision in `tools/update_material_icons.py` and run the script with Python and `fonttools` installed. The script keeps all catalog glyphs and exports Material Symbols at regular weight, neutral grade, and 24 px optical size. The app bundles the fonts and their Apache 2.0 license.
 
 ## 📄 License
 

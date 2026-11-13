@@ -28,7 +28,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -296,10 +295,6 @@ fun EditRecordTileScreen(
     onSave: () -> Unit
 ) {
     val scrollBehavior = MiuixScrollBehavior()
-    val resources = androidx.compose.ui.platform.LocalResources.current
-    val iconLabels = remember(resources) {
-        IconHelper.AVAILABLE_ICONS.associateWith { resources.getString(IconHelper.getLabelRes(it)) }
-    }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -360,10 +355,10 @@ fun EditRecordTileScreen(
                 ) {
                     ArrowPreference(
                         title = stringResource(R.string.label_selected_icon),
-                        summary = iconLabels[icon] ?: icon,
+                        summary = dashboardIconLabel(icon),
                         startAction = {
-                            Icon(
-                                painter = painterResource(IconHelper.getDrawableRes(icon)),
+                            DashboardIcon(
+                                id = icon,
                                 contentDescription = null
                             )
                         },
@@ -496,8 +491,8 @@ fun SettingsMainContent(
                                 onClick = { onItemClick(item, section.getDisplayTitle(context)) },
                                 enabled = !transferBusy && !hasPendingImport,
                                 startAction = {
-                                    Icon(
-                                        painter = painterResource(IconHelper.getDrawableRes(item.icon)),
+                                    DashboardIcon(
+                                        id = item.icon,
                                         contentDescription = null
                                     )
                                 }
@@ -533,8 +528,8 @@ fun SettingsMainContent(
                         summary = stringResource(R.string.desc_record_tile_settings),
                         enabled = !transferBusy && !hasPendingImport,
                         startAction = {
-                            Icon(
-                                painter = painterResource(IconHelper.getDrawableRes(recordIcon)),
+                            DashboardIcon(
+                                id = recordIcon,
                                 contentDescription = null
                             )
                         },

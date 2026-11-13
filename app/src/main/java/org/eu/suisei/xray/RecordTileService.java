@@ -1,7 +1,6 @@
 package org.eu.suisei.xray;
 
 import android.content.res.Configuration;
-import android.graphics.drawable.Icon;
 import android.service.quicksettings.Tile;
 import android.service.quicksettings.TileService;
 
@@ -58,7 +57,7 @@ public class RecordTileService extends TileService {
 
         tile.setLabel(label != null && !label.trim().isEmpty() ? label : getString(R.string.record_tile_label));
         tile.setState(Tile.STATE_INACTIVE);
-        tile.setIcon(Icon.createWithResource(this, IconHelper.getDrawableRes(iconName)));
+        tile.setIcon(MaterialIconCatalog.tileIcon(this, iconName));
         tile.setSubtitle(null);
         tile.setStateDescription(null);
         tile.updateTile();
